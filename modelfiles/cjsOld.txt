@@ -1,0 +1,55 @@
+model{    
+  for (i in 1:nind){                       #loops through each individual
+    for (t in f[i]:(n.occasions-1)){      #loops through each capture period
+      phi[i,t] <- phi.t[year[i],t]                  #relates trap phi.tvival to individual
+      p[i,t] <- p.t[year[i],t]                   #relates trap p.tection to individual
+    } #s
+  } #i
+  
+  for (t in 1:(n.occasions-1)){
+    for(y in 1:g){
+      for(p in 1:pop){
+        logit(phi.t[t,y,p]) <- mu.phi.t[t] + y.phi.t[t,s] + m.phi.t[m]
+        logit(p.t[t,s,m]) <- mu.p.t[s] + y.p.t[t,s] + m.p.t[m]
+        y.phi.t[t,s] ~ dnorm(0,tau.phi.t)            # prior for yearly random phi.tvival effects 
+        y.p.t[t,s] ~ dnorm(0,tau.p.t)            # prior for yearly random p.tections effects
+      } #m 
+    } #t
+  } #s
+  
+  for(s in 1:n.occasions-1){
+    mu.phi.t[s] ~ dnorm(0,.1)           # mean phi.tvial
+    mu.p.t[s] ~ dnorm(0,.1)           # mean p.tection
+    mu.phi.t[s] <- exp(mu.phi.t[s])/(1+exp(mu.phi.t[s]))
+    mu.p.t[s] <- exp(mu.p.t[s])/(1+exp(mu.p.t[s]))
+  }
+  
+  for(m in 1:month){
+    m.phi.t[m] ~ dnorm(0,gamma.phi.t)     # prior for monthly random phi.tvival effects
+    m.p.t[m] ~ dnorm(0,gamma.p.t)     # prior for monthly random p.tection effects
+  }
+  
+  sigma.phi.t ~ dunif(0,1)               # prior for yearly phi.tvival variability
+  tau.phi.t <- 1/(sigma.phi.t*sigma.phi.t)
+  sigma.p.t ~ dunif(0,1)               # prior for yearly p.tection variability
+  tau.p.t <- 1/(sigma.p.t*sigma.p.t)
+  
+  delta.phi.t ~ dunif(0,1)               # prior for monthly phi.tvival variability
+  gamma.phi.t <- 1/(sigma.phi.t*sigma.phi.t)
+  delta.p.t ~ dunif(0,1)               # prior for monthly p.tection variability
+  gamma.p.t <- 1/(sigma.p.t*sigma.p.t)
+  
+  # Likelihood 
+  for (i in 1:nind){
+    # Define latent state at first capture
+    z[i,f[i]] <- 1
+    for (s in (f[i]+1):n.occasions){
+      # State process
+      z[i,s] ~ dbern(mu1[i,s])
+      mu1[i,s] <- phi[i,s-1] * z[i,s-1]
+      # Observation process
+      y[i,s] ~ dbern(mu2[i,s])
+      mu2[i,s] <- p[i,s-1] * z[i,s] 
+    } #s
+  } #i
+}

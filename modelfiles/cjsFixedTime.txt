@@ -1,0 +1,22 @@
+model{    
+  
+  # priors
+  for (t in 1:(n.occasions-1)){
+    PHI[t] ~ dunif(0, 1)        # time specific survival
+    P[t] ~ dunif(0, 1)         # time specific detection
+  }
+  
+  # likelihood 
+  for (i in 1:nind){
+    # Define latent state at first capture
+    z[i,f[i]] <- 1
+    for (t in (f[i]+1):n.occasions){
+      # State process
+      z[i,t] ~ dbern(mu1[i,t])
+      mu1[i,t] <- PHI[t-1] * z[i,t-1]
+      # Observation process
+      y[i,t] ~ dbern(mu2[i,t])
+      mu2[i,t] <- P[t-1] * z[i,t]
+    } #t
+  } #i
+}

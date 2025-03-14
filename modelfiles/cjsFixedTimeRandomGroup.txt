@@ -1,0 +1,43 @@
+model{    
+  for (i in 1:nind){               
+    for (t in f[i]:(n.occasions-1)){
+      phi[i,t] <- PHI[group1[i], t]  
+      p[i,t] <- P[group1[i], t]      
+    } #t
+  } #i
+  
+  for (t in 1:(n.occasions-1)){
+    for(l in 1:g1){
+      logit(PHI[l, t]) <- mu.phi[t] + group1.phi[l, t]
+      logit(P[l, t]) <- mu.p[t] + group1.p[l, t]
+      group1.phi[l, t] ~ dnorm(0,tau.group1.phi)
+      group1.p[l, t] ~ dnorm(0,tau.group1.p)         
+    } #l  
+  } #t
+  
+  for(t in 2:n.occasions-1){
+    mu.phi[t] ~ dnorm(0,.1)        
+    mu.p[t] ~ dnorm(0,.1)
+    mean.phi[t] <- exp(mu.phi[t])/(1+exp(mu.phi[t]))
+    mean.p[t] <- exp(mu.p[t])/(1+exp(mu.p[t]))
+  }
+  
+  sigma.group1.phi ~ dunif(0,1)            
+  tau.group1.phi <- 1/(sigma.group1.phi*sigma.group1.phi)
+  sigma.group1.p ~ dunif(0,1)             
+  tau.group1.p <- 1/(sigma.group1.p*sigma.group1.p)
+  
+  # Likelihood 
+  for (i in 1:nind){
+    # Define latent state at first capture
+    z[i,f[i]] <- 1
+    for (t in (f[i]+1):n.occasions){
+      # State process
+      z[i,t] ~ dbern(mu1[i,t])
+      mu1[i,t] <- phi[i,t-1] * z[i,t-1]
+      # Observation process
+      y[i,t] ~ dbern(mu2[i,t])
+      mu2[i,t] <- p[i,t-1] * z[i,t] 
+    } #t
+  } #i
+}

@@ -1,0 +1,59 @@
+---
+title: "Snake River Steelhead Kelt Summary"
+author: "Ryan N. Kinzer, *Research Scientist*"
+date: "`r format(Sys.time(), '%d %B, %Y')`"
+output:
+  bookdown::pdf_document2:
+    citation_package: biblatex
+    keep_tex: yes
+    fig_caption: yes
+    latex_engine: xelatex
+    template: C:\ryank\Templates\NPT_report_template2.tex
+  bookdown::word_document2:
+    reference_docx: ../../../Templates/Word_template1.docx
+    number_sections: no
+    toc: no
+    toc_levels: 3
+  pdf_document:
+    toc: no
+  bookdown::html_document2:
+    number_sections: no
+    fig_caption: yes
+    toc: yes
+    floating_toc: yes
+    df_print: paged
+shorttitle: Kelt Summary
+geometry: margin=1in
+fontfamily: mathpazo
+fontsize: 11pt
+branding: yes
+bibliography:
+- kelt_summary.bib
+- kelt_summary_package.bib
+link-citations: yes
+csl: ../../../Templates/american-fisheries-society.csl
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## R Markdown
+
+This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
+
+When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
+
+```{r cars}
+summary(cars)
+```
+
+## Including Plots
+
+You can also embed plots, for example:
+
+```{r pressure, echo=FALSE}
+plot(pressure)
+```
+
+Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.

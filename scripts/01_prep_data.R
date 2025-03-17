@@ -4,7 +4,7 @@
 # Author: Ryan N. Kinzer
 # Date Created: 2021-10-08
 #   Date Modified: 2025-03-13
-#   Modified By: Mike Ackerma
+#   Modified By: Mike Ackerman
 
 # load packages and functions
 library(tidyverse)

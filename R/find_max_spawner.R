@@ -1,9 +1,13 @@
-
-# turn all obs prior to last spawner obs to spawner obs
-# this often works, but sometimes errantly turns kelt observations to spawner observations. E.g., when a kelt briefly dips into a 
-# downriver tributary (e.g., Walla Walla, John Day) before continuing downstream migration. Also, when a kelt has an errant time-stamp
-# to a MRR site. At some MRR sites, sometime batch uploads occur and the min_det can be far later than when the fish likely 
-# actually arrived at the MRR site.
+# Purpose: Turn all observations prior to the last spawner observation to a spawner observation. The hope is to avoid errant downstream
+#   observations (e.g., an adult moves to a hydrosystem site after release at LGR, then later moves back upriver to spawn).
+#
+# Author: Ryan Kinzer
+#
+# Notes: This function often works, but sometimes errantly turns kelt observations to spawner observations. For example, a kelt may
+# briefly dip into a downriver tributary (e.g., Walla Walla, John Day) before continuing downstream migration as a kelt. Also, a kelt may
+# have an errant time-stamp to a MRR site. At some MRR sites, sometimes batch uploads occur and the min_det date-time can be far later
+# than when that fish actually arrived at the MRR iste
+#
 #' Find max spawner observation.
 #'
 #' @param df 

@@ -1,4 +1,4 @@
-# Create capture histories for steelhead including spawner, kelt, and repeat spawner observations.
+# Create capture histories for steelhead including spawner, kelt, and repeat spawner observations using Ryan Kinzer's method.
 #' Title
 #'
 #' @param x 

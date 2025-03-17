@@ -1749,13 +1749,13 @@ font-size: 0.95em;
 <div class="watermark">DRAFT</div>
 <div id="data-source" class="section level1" number="1">
 <h1><span class="header-section-number">1</span> Data Source</h1>
-<p>The dataset used in this analysis comprises PIT-tag observations of adult steelhead (newly or previously tagged) trapped at Lower Granite Dam (LGD) during spawn years 2010–2024. We generated PIT-tag observations by first compiling a list of steelhead with <em>valid</em> PIT-tag codes collected at the LGD adult trap between July 1 and June 30 of each spawn year <span class="citation">(<a href="#ref-need_citation"><strong>need_citation?</strong></a>)</span>. Fish origin was determined based on the presence of an adipose fin, absence of a coded-wire tag, and failure to genetically assign to a hatchery stock using parentage-based tagging <span class="citation">(<a href="#ref-IDFGcitation"><strong>IDFGcitation?</strong></a>; <a href="#ref-steeleValidationParentagebasedTagging2013"><strong>steeleValidationParentagebasedTagging2013?</strong></a>)</span>. A PIT-tag code was considered <em>valid</em> if the adult steelhead was trapped while ascending the LGD fish ladder during a systematic subsampling period. Once the valid tag list was developed, we retrieved all PIT-tag interrogations for each code using the complete tag history query from <a href="https://www.ptagis.org">PTAGIS</a> and processed them using computer algorithms.</p>
-<p>The full dataset was initially processed using the <code>PITcleanr::compression()</code> function <span class="citation">(<a href="#ref-R-PITcleanr"><strong>R-PITcleanr?</strong></a>)</span> in the R statistical software <span class="citation">(<a href="#ref-R-base">R Core Team 2024</a>)</span>. This function, along with a supplied configuration file, collapsed multiple PIT-tag interrogations at the same location and within a similar time frame into a single row, retaining only essential information: the PIT-tag code, observation location (i.e., node), and the minimum and maximum timestamps of observations. The configuration file, initially constructed using <code>PITcleanr::buildConfig()</code>, was minimally modified to group detection nodes (i.e., PIT-tag antennas or sites) into single geographic locations of interest. For instance, all PIT-tag detection sites at Bonneville Dam (e.g., BCC, B2J, etc.) were merged into a single node, while LGD sites were categorized into a downstream migration node (GRJ, GRS) and an upstream migration node (GRA). All detection nodes upstream of LGD remained distinct to facilitate assignment of detections to specific spawning locations and movement direction. Finally, we truncated the dataset to include only observations occurring after an upstream-migrating steelhead was first detected at the LGD adult trap, excluding all juvenile and pre-return adult observations.</p>
-<p>The resulting dataset consists of PIT-tag observations from a randomly sampled subset of adult steelhead migrating past detection nodes during three distinct life stages: spawners, kelts, and repeat spawners. A simple rule set was applied to classify each observation by life stage. The spawning stage was assigned to all observations before the fish’s last and furthest upstream movement. The kelt stage was assigned to observations occurring at least five days after the last upstream spawner movement and to any detections at Columbia and Lower Snake River hydrosystem sites after April 20. The repeat spawner stage was assigned to observations following the first upstream movement in any spawn year beyond the fish’s initial spawn year.</p>
-<p>In the 15 years of observation data, we have observed 16742 PIT-tags at Snake River spawning locations. Tables <a href="#tab:data-year">1.1</a> and <a href="#tab:data-pop">1.3</a> show the number of these unique PIT-tagged spawners for each spawn year and within each Snake River population upstream of LGD. Additionally, the tables include the sum of unique kelt observations at LGD and observations of kelt downstream (i.e., below) of LGD. The largest spawners typically occur in the Lochsa River (CRLOC-s), SF Clearwater River (CRSFC-s), SF Salmon River (SFMAI-s), Lolo Creek (CRLOL-s), Selway River (CRSEL-s), Secesh River (SFSEC-s) and Middle Fork Salmon populations (MFUMA-s and MFBIG-s) (Figure <a href="#fig:length-plot">1.1</a>). While the proportion of females returning to each population is lowest in the Little Salmon River (SRLSR-s) and the upper mainstem Salmon River (SRUMA-s) and highest in Pahsimeroi River (SRPAH-s) and Panther Creek (SRPAN-s) (Figure <a href="#fig:sex-plot">1.2</a>).</p>
-<table class="table table-striped" style="color: black; margin-left: auto; margin-right: auto;">
+<p>The dataset used in this analysis comprises of PIT-tag observations of adult steelhead (newly or previously tagged) trapped at the Lower Granite Dam (LGR) adult ladder during spawn years 2010 - 2024. We generated PIT-tag observations by first compiling a list of adult steelhead with <em>valid</em> PIT-tag codes collected at the LGR adult trap between July 1 and June 30 of each spawn year <span class="citation">(<a href="#ref-Ogden2020">Ogden 2020</a>; <a href="#ref-Baum2023">Baum et al. 2023</a>)</span>. All phenotypic natural-origin fish (e.g., present adipose fin and absence of a coded-wire tag) are included as part of the <em>valid</em> tag list. Any phenotypic natural-origin originating from hatchery broodstock is later identified using parentage-based tagging <span class="citation">(<a href="#ref-Steele2013">Steele et al. 2013</a>, <a href="#ref-Steele2019">2019</a>; <a href="#ref-Baum2023">Baum et al. 2023</a>)</span>. For this analysis, we included natural-origin adults originating from hatchery broodstock (e.g., supplementation fish), but those could easily be removed or analyzed separately, if desired. A PIT-tag code was considered <em>valid</em> if the adult steelhead was trapped while ascending the LGR fish ladder during a systematic subsampling period, was greater than 30 cm FL, and not missing fields within the LGR trapping database <span class="citation">(<a href="#ref-Baum2023">Baum et al. 2023</a>)</span>. Once the valid tag was developed, we retrieved all PIT-tag interrogations for each code using the complete tag history query from <a href="https://www.ptagis.org">PTAGIS</a>. Observations were then processed within the <a href="https://github.com/NPTfisheries/SnakeRiverFishStatus">SnakeRiverFishStatus</a> GitHub repo using scripts maintained there.</p>
+<p>The full complete tag history was initially prcessed using the <code>PITcleanr::compression()</code> function <span class="citation">(<a href="#ref-See2024">See et al. 2024</a>)</span> in the R statistical software <span class="citation">(<a href="#ref-R-base">R Core Team 2024</a>)</span>. This function, along with a supplied configuration file, collapsed multiple PIT-tag interrogations at the same location and within a similar time frame into a single record, retaining only essential information: the PIT-tag code, observation location (i.e., node), and the minimum and maximum timestamps of observations at that location (i.e., PIT-tag arrays or sites) into a single geographic location of interest. For instance, all PIT-tag detection sites at Bonneville Dam (e.g., BCC, B2J, etc.) were merged into a single node, while LGR sites were categorized into a downstream migration node (GRJ, GRS) and an upstream migration node (GRA, LGRLDR, LGR). All detections upstream of LGR remained distinct to facilitate assignment of detections to specific spawning locations and identify movement direction. Finally, we truncated the dataset to include only observations occurring after an upstream-migrating steelhead was first detected at the LGR adult trap, excluding all juvenile and pre-return adult observations.</p>
+<p>The resulting dataset consists of PIT-tag observations from a randomly samples subset of adult steelhead migrating past LGR and potential subsequent detections indicating three distinct life stages: spawners, kelts, and repeat spawners. A simple rule set was applied to classify observations to each life stage using functions in the <a href="https://github.com/NPTfisheries/SnakeRiverKelt">SnakeRiverKelt</a> GitHub repo. The spawning stage was assigned to all observations before the fish’s last and furthest upstream movement. The kelt stage was assigned to observations occurring at least five days after the last upstream spawner movement in a downstream direction and to any detections at Columbia and lower Snake River hydrosystem sites after April 20. The repeat spawner stage was assigned to observations following the first upstream movement in any spawn year beyond the fish’s initial spawn year.</p>
+<p>In the 15 years of observation data, we have observed 16,742 PIT-tagged adult steelhead at Snake River spawning locations. Tables <a href="#tab:data-year">1.1</a> and <a href="#tab:data-pop">1.2</a> show the number of these unique PIT-tagged spawners for each spawn year and within each Snake River population upstream of LGD. Additionally, the tables include the sum of unique kelt observations at LGR and observations of kelt downstream (i.e., below) of LGR.</p>
+<table class="table table-striped table-condensed" style="color: black; margin-left: auto; margin-right: auto;">
 <caption>
-<span id="tab:data-year">Table 1.1: </span><span id="tab:data-year">Table 1.2: </span>Natural and hatchery origin PIT-tagged steelhead observed as spawners upstream of Lower Granite Dam (LGD) at instream PIT-tag detection systems and subsequent detections of kelt at Lower Snake and Columbia River hydrosystem facilities.
+<span id="tab:data-year">Table 1.1: </span>Natural and hatchery origin PIT-tagged steelhead observed as spawners upstream of Lower Granite Dam (LGD) at instream PIT-tag detection systems and subsequent detections of kelt at Lower Snake and Columbia River hydrosystem facilities.
 </caption>
 <thead>
 <tr>
@@ -1984,14 +1984,31 @@ Kelt below LGD
 136
 </td>
 </tr>
+<tr>
+<td style="text-align:left;">
+Total
+</td>
+<td style="text-align:right;">
+16742
+</td>
+<td style="text-align:right;">
+1397
+</td>
+<td style="text-align:right;">
+2311
+</td>
+</tr>
 </tbody>
 </table>
-<table class="table table-striped" style="color: black; margin-left: auto; margin-right: auto;">
+<table class="table table-striped table-condensed" style="color: black; margin-left: auto; margin-right: auto;">
 <caption>
-<span id="tab:data-pop">Table 1.3: </span><span id="tab:data-pop">Table 1.4: </span>Natural and hatchery origin PIT-tagged steelhead observed as spawners upstream of Lower Granite Dam (LGD) at instream PIT-tag detection systems and subsequent detections of kelt at Lower Snake and Columbia River hydrosystem facilities.
+<span id="tab:data-pop">Table 1.2: </span>Natural and hatchery origin PIT-tagged steelhead observed as spawners upstream of Lower Granite Dam (LGD) at instream PIT-tag detection systems and subsequent detections of kelt at Lower Snake and Columbia River hydrosystem facilities.
 </caption>
 <thead>
 <tr>
+<th style="text-align:left;">
+MPG
+</th>
 <th style="text-align:left;">
 TRT_POPID
 </th>
@@ -2009,6 +2026,9 @@ Kelt below LGD
 <tbody>
 <tr>
 <td style="text-align:left;">
+Clearwater River
+</td>
+<td style="text-align:left;">
 CRLMA-s
 </td>
 <td style="text-align:right;">
@@ -2022,6 +2042,9 @@ CRLMA-s
 </td>
 </tr>
 <tr>
+<td style="text-align:left;">
+Clearwater River
+</td>
 <td style="text-align:left;">
 CRLOC-s
 </td>
@@ -2037,6 +2060,9 @@ CRLOC-s
 </tr>
 <tr>
 <td style="text-align:left;">
+Clearwater River
+</td>
+<td style="text-align:left;">
 CRLOL-s
 </td>
 <td style="text-align:right;">
@@ -2050,6 +2076,9 @@ CRLOL-s
 </td>
 </tr>
 <tr>
+<td style="text-align:left;">
+Clearwater River
+</td>
 <td style="text-align:left;">
 CRSEL-s
 </td>
@@ -2065,6 +2094,9 @@ CRSEL-s
 </tr>
 <tr>
 <td style="text-align:left;">
+Clearwater River
+</td>
+<td style="text-align:left;">
 CRSFC-s
 </td>
 <td style="text-align:right;">
@@ -2078,6 +2110,9 @@ CRSFC-s
 </td>
 </tr>
 <tr>
+<td style="text-align:left;">
+Grande Ronde River
+</td>
 <td style="text-align:left;">
 GRJOS-s
 </td>
@@ -2093,6 +2128,9 @@ GRJOS-s
 </tr>
 <tr>
 <td style="text-align:left;">
+Grande Ronde River
+</td>
+<td style="text-align:left;">
 GRLMT-s
 </td>
 <td style="text-align:right;">
@@ -2106,6 +2144,9 @@ GRLMT-s
 </td>
 </tr>
 <tr>
+<td style="text-align:left;">
+Grande Ronde River
+</td>
 <td style="text-align:left;">
 GRUMA-s
 </td>
@@ -2121,6 +2162,9 @@ GRUMA-s
 </tr>
 <tr>
 <td style="text-align:left;">
+Grande Ronde River
+</td>
+<td style="text-align:left;">
 GRWAL-s
 </td>
 <td style="text-align:right;">
@@ -2134,6 +2178,9 @@ GRWAL-s
 </td>
 </tr>
 <tr>
+<td style="text-align:left;">
+Imnaha River
+</td>
 <td style="text-align:left;">
 IRMAI-s
 </td>
@@ -2149,61 +2196,8 @@ IRMAI-s
 </tr>
 <tr>
 <td style="text-align:left;">
-MFBIG-s
+Lower Snake
 </td>
-<td style="text-align:right;">
-491
-</td>
-<td style="text-align:right;">
-41
-</td>
-<td style="text-align:right;">
-80
-</td>
-</tr>
-<tr>
-<td style="text-align:left;">
-MFUMA-s
-</td>
-<td style="text-align:right;">
-33
-</td>
-<td style="text-align:right;">
-9
-</td>
-<td style="text-align:right;">
-6
-</td>
-</tr>
-<tr>
-<td style="text-align:left;">
-SFMAI-s
-</td>
-<td style="text-align:right;">
-1193
-</td>
-<td style="text-align:right;">
-66
-</td>
-<td style="text-align:right;">
-196
-</td>
-</tr>
-<tr>
-<td style="text-align:left;">
-SFSEC-s
-</td>
-<td style="text-align:right;">
-200
-</td>
-<td style="text-align:right;">
-14
-</td>
-<td style="text-align:right;">
-36
-</td>
-</tr>
-<tr>
 <td style="text-align:left;">
 SNASO-s
 </td>
@@ -2219,6 +2213,77 @@ SNASO-s
 </tr>
 <tr>
 <td style="text-align:left;">
+Salmon River
+</td>
+<td style="text-align:left;">
+MFBIG-s
+</td>
+<td style="text-align:right;">
+491
+</td>
+<td style="text-align:right;">
+41
+</td>
+<td style="text-align:right;">
+80
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Salmon River
+</td>
+<td style="text-align:left;">
+MFUMA-s
+</td>
+<td style="text-align:right;">
+33
+</td>
+<td style="text-align:right;">
+9
+</td>
+<td style="text-align:right;">
+6
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Salmon River
+</td>
+<td style="text-align:left;">
+SFMAI-s
+</td>
+<td style="text-align:right;">
+1193
+</td>
+<td style="text-align:right;">
+66
+</td>
+<td style="text-align:right;">
+196
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Salmon River
+</td>
+<td style="text-align:left;">
+SFSEC-s
+</td>
+<td style="text-align:right;">
+200
+</td>
+<td style="text-align:right;">
+14
+</td>
+<td style="text-align:right;">
+36
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Salmon River
+</td>
+<td style="text-align:left;">
 SREFS-s
 </td>
 <td style="text-align:right;">
@@ -2232,6 +2297,9 @@ SREFS-s
 </td>
 </tr>
 <tr>
+<td style="text-align:left;">
+Salmon River
+</td>
 <td style="text-align:left;">
 SRLEM-s
 </td>
@@ -2247,6 +2315,9 @@ SRLEM-s
 </tr>
 <tr>
 <td style="text-align:left;">
+Salmon River
+</td>
+<td style="text-align:left;">
 SRLSR-s
 </td>
 <td style="text-align:right;">
@@ -2260,6 +2331,9 @@ SRLSR-s
 </td>
 </tr>
 <tr>
+<td style="text-align:left;">
+Salmon River
+</td>
 <td style="text-align:left;">
 SRNFS-s
 </td>
@@ -2275,6 +2349,9 @@ SRNFS-s
 </tr>
 <tr>
 <td style="text-align:left;">
+Salmon River
+</td>
+<td style="text-align:left;">
 SRPAH-s
 </td>
 <td style="text-align:right;">
@@ -2288,6 +2365,9 @@ SRPAH-s
 </td>
 </tr>
 <tr>
+<td style="text-align:left;">
+Salmon River
+</td>
 <td style="text-align:left;">
 SRPAN-s
 </td>
@@ -2303,6 +2383,9 @@ SRPAN-s
 </tr>
 <tr>
 <td style="text-align:left;">
+Salmon River
+</td>
+<td style="text-align:left;">
 SRUMA-s
 </td>
 <td style="text-align:right;">
@@ -2315,8 +2398,27 @@ SRUMA-s
 55
 </td>
 </tr>
+<tr>
+<td style="text-align:left;">
+Total
+</td>
+<td style="text-align:left;">
+<ul>
+<li></td>
+<td style="text-align:right;">
+16742
+</td>
+<td style="text-align:right;">
+1397
+</td>
+<td style="text-align:right;">
+2311
+</td>
+</tr>
 </tbody>
-</table>
+</table></li>
+</ul>
+<p>The largest (greatest fork length) spawners typiclly occur in the Lochsa River (CRLOC-s), SF Salmon River (SFMAI-s), South Fork Clearwater River (CRSFC-s), Lolo Creek (CRLOL-s), Selway River (CRSEL-s), Sesech River (SFSEC-s) and Middle Fork Salmon River ((MFUMA-s and MFBIG-s) populations (Figure <a href="#fig:length-plot">1.1</a>). The proportion of females returning to each population is lowest in the Little Salmon River (SRLSR-s) and upper mainstem Salmon River (SRUMA-s) populations and highest in the Pahsimeroi (SRPAH-s) and Panther Creek (SRPAN-s) populations (Figure <a href="#fig:sex-plot">1.2</a>).</p>
 <div class="figure" style="text-align: center"><span style="display:block;" id="fig:length-plot"></span>
 <img role="img" aria-label="Length distribution of steelhead sampled at Lower Granite Dam and later detected in spawning areas at instream PIT-tag detection systems." src="data:image/png;base64,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" alt="Length distribution of steelhead sampled at Lower Granite Dam and later detected in spawning areas at instream PIT-tag detection systems." width="672" />
 <p class="caption">
@@ -2332,7 +2434,7 @@ Figure 1.2: Distribution of the proportion of female steelhead sampled at Lower 
 </div>
 <div id="analysis" class="section level1" number="2">
 <h1><span class="header-section-number">2</span> Analysis</h1>
-<p>We estimated post-spawn steelhead survival to LGD using a Cormack-Jolly-Seber (CJS) model <span class="citation">(<a href="#ref-lebretonModelingSurvivalTesting1992"><strong>lebretonModelingSurvivalTesting1992?</strong></a>)</span>. The likelihood function for an individual <span class="math inline">\(i\)</span> in group <span class="math inline">\(g\)</span> (e.g., a specific spawn year or population) follows:</p>
+<p>We estimated post-spawn steelhead survival to LGD using a Cormack-Jolly-Seber (CJS) model <span class="citation">(<a href="#ref-lebreton_modeling_1992">Lebreton et al. 1992</a>)</span>. The likelihood function for an individual <span class="math inline">\(i\)</span> in group <span class="math inline">\(g\)</span> (e.g., a specific spawn year or population) follows:</p>
 <p><span class="math display">\[
 L = \prod_{i=1}^{n} \prod_{t=1}^{T} P(y_{it} | \phi^g, p^g)
 \]</span></p>
@@ -2354,10 +2456,10 @@ AIC = -2 \log L + 2K
 </div>
 <div id="results" class="section level1" number="3">
 <h1><span class="header-section-number">3</span> Results</h1>
-<p>The best fitting CJS model included terms for spawn year and population for estimating survival and only spawn year for estimating detection probabilities (Table <a href="#tab:mod-results">3.1</a>). Figures <a href="#fig:det-plot">3.1</a> and <a href="#fig:suv-plot">3.2</a> show the estimated detection and survival probabilities for the best fitting model. Table <a href="#tab:avg-sur-tab">3.3</a> and Figure <a href="#fig:avg-sur-plot">3.3</a> provide the weighted average of survivals across spawn years for each population. The weighted average was calculated using the inverse variance to give more precise annual estimates more weight.</p>
+<p>The best fitting CJS model included terms for spawn year and population for estimating survival and only spawn year for estimating detection probabilities (Table <a href="#tab:mod-results">3.1</a>). Figures <a href="#fig:det-plot">3.1</a> and <a href="#fig:suv-plot">3.2</a> show the estimated detection and survival probabilities for the best fitting model. Table <a href="#tab:avg-sur-tab">3.2</a> and Figure <a href="#fig:avg-sur-plot">3.3</a> provide the weighted average of survivals across spawn years for each population. The weighted average was calculated using the inverse variance to give more precise annual estimates more weight.</p>
 <table class="table table-striped" style="color: black; margin-left: auto; margin-right: auto;">
 <caption>
-<span id="tab:mod-results">Table 3.1: </span><span id="tab:mod-results">Table 3.2: </span>Model selection criteria for fitted Cormack-Jolly-Seber models.
+<span id="tab:mod-results">Table 3.1: </span>Model selection criteria for fitted Cormack-Jolly-Seber models.
 </caption>
 <thead>
 <tr>
@@ -3022,7 +3124,7 @@ Figure 3.2: Estimated survival probability from the best fitting model of adult 
 </div>
 <table class="table table-striped" style="color: black; margin-left: auto; margin-right: auto;">
 <caption>
-<span id="tab:avg-sur-tab">Table 3.3: </span><span id="tab:avg-sur-tab">Table 3.4: </span>Mean weighted survival (calculated using the inverse variance) of adult steelhead spawners to the kelt life-stage at Lower Granite Dam.
+<span id="tab:avg-sur-tab">Table 3.2: </span>Mean weighted survival (calculated using the inverse variance) of adult steelhead spawners to the kelt life-stage at Lower Granite Dam.
 </caption>
 <thead>
 <tr>
@@ -3431,11 +3533,29 @@ Figure 3.3: Average weighted survival (calculated using the inverse variance) of
 <div id="references" class="section level1 unnumbered">
 <h1>References</h1>
 <div id="refs" class="references csl-bib-body hanging-indent" entry-spacing="0">
+<div id="ref-Baum2023" class="csl-entry">
+Baum, C. M., J. S. Hargrove, A. C. Harris, M. Davison, M. E. Dobos, N. R. Smith, L. Chiaramonte, T. Copeland, and M. R. Campbell. 2023. Wild <span>Adult Steelhead</span> and <span>Chinook Salmon Abundance</span> and <span>Composition</span> at <span>Lower Granite Dam</span>, <span>Spawn Year</span> 2022 2022 <span>Annual Report</span>.
+</div>
 <div id="ref-laake_marked_2013" class="csl-entry">
 Laake, J. L., D. S. Johnson, and P. B. Conn. 2013. <a href="https://doi.org/10.1111/2041-210X.12065">Marked: An <span>R</span> package for maximum likelihood and <span>Markov</span> <span>Chain</span> <span>Monte</span> <span>Carlo</span> analysis of capture–recapture data</a>. Methods in Ecology and Evolution 4(9):885–890.
 </div>
+<div id="ref-lebreton_modeling_1992" class="csl-entry">
+Lebreton, J.-D., K. P. Burnham, J. Clobert, and D. R. Anderson. 1992. <a href="https://doi.org/10.2307/2937171">Modeling <span>Survival</span> and <span>Testing</span> <span>Biological</span> <span>Hypotheses</span> <span>Using</span> <span>Marked</span> <span>Animals</span>: <span>A</span> <span>Unified</span> <span>Approach</span> with <span>Case</span> <span>Studies</span></a>. Ecological Monographs 62(1):67–118.
+</div>
+<div id="ref-Ogden2020" class="csl-entry">
+Ogden, D. 2020. Operation of the <span>Adult Trap</span> at <span>Lower Granite Dam</span>, 2020. <span>BPA Project</span> # 2005-002-00. Page 8.
+</div>
 <div id="ref-R-base" class="csl-entry">
 R Core Team. 2024. <a href="https://www.R-project.org/">R: A language and environment for statistical computing</a>. R Foundation for Statistical Computing, Vienna, Austria.
+</div>
+<div id="ref-See2024" class="csl-entry">
+See, K., R. N. Kinzer, R. Orme, and M. W. Ackerman. 2024. <span>PITcleanr</span>: <span>Cleans</span> up <span>PIT</span> tag capture histories. <span>R</span> package version 3.0.2, commit 8c432d402d587e3a02e8c3c5e0542ee8ff12429e.
+</div>
+<div id="ref-Steele2013" class="csl-entry">
+Steele, C. A., E. C. Anderson, M. W. Ackerman, M. A. Hess, N. R. Campbell, S. R. Narum, and M. R. Campbell. 2013. <a href="https://doi.org/10.1139/cjfas-2012-0451">A validation of parentage-based tagging using hatchery steelhead in the <span>Snake River</span> basin</a>. Canadian Journal of Fisheries and Aquatic Sciences 70(7):1046–1054.
+</div>
+<div id="ref-Steele2019" class="csl-entry">
+Steele, C. A., M. Hess, S. Narum, and M. Campbell. 2019. <a href="https://doi.org/10.1002/fsh.10260">Parentage-<span>Based Tagging</span>: <span>Reviewing</span> the <span>Implementation</span> of a <span>New Tool</span> for an <span>Old Problem</span></a>. Fisheries 44(9):412–422.
 </div>
 </div>
 </div>

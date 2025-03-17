@@ -3,28 +3,32 @@
 #
 # Author: Ryan N. Kinzer
 # Date Created: 2021-10-08
-#   Date Modified: 2025-03-13
+#   Date Last Modified: 2025-03-17
 #   Modified By: Mike Ackerman
 
 # load packages and functions
 library(tidyverse)
 library(sf)
-#library(janitor)
 
+# source some helper functions
 source('./R/find_max_spawner.R')
 source("./R/steelheadCapHist.R")
 
 # set some parameters
-#reviewed = TRUE
 spp = "Steelhead"
 yr_range = 2010:2024
-sy = max(yr_range)
+max_sy = max(yr_range)
+
+#---------------
+# load data
+
+# set some file paths to datasets
 snake_proj = "../SnakeRiverFishStatus/"
 PITcleanr_folder = paste0(snake_proj, "output/PITcleanr/human_reviewed/")
 lh_folder = paste0(snake_proj, "output/life_history/")
 trap_path = paste0(snake_proj, "data/LGTrappingDB/LGTrappingDB_2024-12-26.csv")
 
-# load configuration files
+# load configuration files (just need crb_sites_sf object)
 load(file = paste0(snake_proj, "data/configuration_files/site_config_LGR_20241226.rda")) ; rm(flowlines, parent_child, configuration, sr_site_pops)
 
 # load PITcleanr cleaned steelhead observation data
@@ -46,55 +50,64 @@ tag_meta = list.files(path = lh_folder,
     path = .x,
     sheet = "tag_lh"
   )) %>%
-  rename(spawn_yr = spawn_year)
+  rename(spawn_yr = spawn_year) %>%
+  janitor::clean_names()
 
 # load lgtrappingdb
-trap_df = read_csv(trap_path) %>%
-  mutate(GenStock = recode(GenStock, "LOWSALM" = "LOSALM"))
+# trap_df = read_csv(trap_path) %>%
+#   # some LOSALM & LOCLWR genstocks are errantly coded as LOWSALM & LOWCLWR
+#   mutate(GenStock = recode(GenStock, "LOWSALM" = "LOSALM")) %>%
+#   mutate(GenStock = recode(GenStock, "LOWCLWR" = "LOCLWR"))
 
 #---------------
-# Generate a common dataset
-
-dat = pitcleanr_df %>%
+# generate a common complete tag history dataset
+cth_df = pitcleanr_df %>%
   # remove spawner observations considered FALSE for dabom
   filter(!(life_stage == "spawner" & user_keep_obs == FALSE)) %>%
+  # create site code from node
   mutate(site_code = str_remove(node, "_[D|U]")) %>%
-  # correct obs of fish moving downstream looking similar to a kelt, then later moving upstream following spawning patters
-  group_by(spawn_yr) %>%
-  nest() %>%
-  mutate(new = map(
-    data,
-    .f = ~find_max_spawner(.)
-  )) %>%
-  select(-data) %>%
-  unnest(new) %>%
+  # grab the date-time that each fish last left LGR
   group_by(spawn_yr, tag_code) %>%
   mutate(lgr_max_det = max(max_det[site_code == "LGR" & life_stage == "spawner"])) %>%
   ungroup() %>%
+  # join rkm and rkm_total for each site
+  left_join(crb_sites_sf %>%
+              select(site_code,
+                     rkm,
+                     rkm_total) %>%
+              st_drop_geometry(),
+            by = "site_code") %>%
+  # a little cleaning
   select(spawn_yr,
          id,
          tag_code,
          life_stage,
          site_code,
          node,
+         rkm,
+         rkm_total,
          direction,
          slot,
          min_det,
          max_det,
-         max_spawner_det,
          lgr_max_det,
-         path) %>%
-  # join rkm for each site
-  left_join(crb_sites_sf %>%
-              select(site_code,
-                     rkm,
-                     rkm_total) %>%
-              st_drop_geometry(),
-            by = "site_code")
+         path)
 
-#RK direction
+# use find_max_spawner to fix errant kelt observations?
+fix_errant_kelt_calls = F
 
-rk_all <- dat %>%
+# apply find_max_spawner only if fix_errant_kelt_calls is TRUE
+if (fix_errant_kelt_calls) {
+  cth_df = cth_df %>%
+    group_by(spawn_yr) %>%
+    nest() %>%
+    mutate(new = map(data, find_max_spawner)) %>%
+    select(-data) %>%
+    unnest(new) 
+}
+
+# RK direction
+rk_ch <- cth_df %>%
   ungroup() %>%
   group_by(spawn_yr) %>%
   nest() %>%
@@ -103,40 +116,24 @@ rk_all <- dat %>%
   select(-data) %>%
   unnest(ch)
 
-#MK direction
+# MA direction
+source("./R/steelheadCapHist_MA.R")
+ma_ch = cth_df %>%
+  ungroup() %>%
+  group_by(spawn_yr, tag_code) %>%
+  steelheadCapHist_MA() %>%
+  ungroup() %>%
+  select(-lgr_max_det, -grs_kelt_det)
 
-ma_all = dat %>%
-# remove repeat spawner observations, for now
-#filter(life_stage != "repeat spawner") %>%
-group_by(spawn_yr, tag_code) %>%
-summarise(
-  release_lgr = if_else(any(max_det == lgr_max_det & life_stage == "spawner" & node == "LGR"), 1, 0),
-  spawner_above = if_else(any(str_starts(rkm, "522") & rkm_total > 695 & min_det > lgr_max_det & life_stage == "spawner"), 1, 0),
-  spawner_below = if_else(any(life_stage == "spawner" & grepl("GRS", path) & min_det > lgr_max_det & !site_code %in% c("GOA", "LMA", "IHR", "MCN", "JDA", "TDA", "BON")), 1, 0),
-  kelt_above = if_else(any(life_stage == "kelt"    & !grepl("GRS", path) & node != "LGR"), 1, 0),
-  kelt_grs = if_else(any(site_code == "GRS" & life_stage == "kelt" & min_det > lgr_max_det), 1, 0),
-  kelt_goa = if_else(any(site_code == "GOA" & life_stage == "kelt" & min_det > lgr_max_det), 1, 0),
-  kelt_lma = if_else(any(site_code == "LMA" & life_stage == "kelt" & min_det > lgr_max_det), 1, 0),
-  kelt_ihr = if_else(any(site_code == "IHR" & life_stage == "kelt" & min_det > lgr_max_det), 1, 0),
-  kelt_mcn = if_else(any(site_code == "MCN" & life_stage == "kelt" & min_det > lgr_max_det), 1, 0),
-  kelt_jda = if_else(any(site_code == "JDA" & life_stage == "kelt" & min_det > lgr_max_det), 1, 0),
-  kelt_tda = if_else(any(site_code == "TDA" & life_stage == "kelt" & min_det > lgr_max_det), 1, 0),
-  kelt_bon = if_else(any(site_code == "BON" & life_stage == "kelt" & min_det > lgr_max_det), 1, 0),
-  #kelt_dwn = if_else(any(site_code %in% c("GOA", "LMA", "IHR", "MCN", "JDA", "TDA", "BON") & life_stage == "kelt" & min_det > lgr_max_det), 1, 0),
-  rs_bon   = if_else(any(life_stage == "repeat spawner" & node == "BON"), 1, 0),
-  rs_lgr   = if_else(any(life_stage == "repeat spawner" & node == "LGR"), 1, 0),
-  rs_above = if_else(any(life_stage == "repeat spawner" & !grepl("GRS", path) & node != "LGR"), 1, 0),
-  # when was the fish last observed moving upstream at lgr?
-  lgr_max_det = unique(lgr_max_det),
-  # if grs = 1, when was the fish last observed at grs as a kelt?
-  grs_kelt_det = if (any(site_code == "GRS" & life_stage == "kelt" & min_det > lgr_max_det)) {
-    max(max_det[site_code == "GRS" & life_stage == "kelt" & min_det > lgr_max_det], na.rm = TRUE)
-  } else { NA },
-  .groups = "drop"
-)
-    
-  # QA/QC: summed cap hists by spawn year
-ma_ch_summary = ma_all %>%
+# QA/QC: summed cap hists by spawn year
+rk_ch_summary = rk_ch %>%
+  group_by(spawn_yr) %>%
+  summarise(across(-tag_code, sum)) %>%
+  ungroup() %>%
+  select(-other)
+
+# QA/QC: summed cap hists by spawn year
+ma_ch_summary = ma_ch %>%
   select(spawn_yr, 
          tag_code,
          release_lgr:rs_above) %>%
@@ -144,15 +141,8 @@ ma_ch_summary = ma_all %>%
   summarise(across(-tag_code, sum)) %>%
   ungroup()
 
-# QA/QC: summed cap hists by spawn year
-rk_ch_summary = rk_all %>%
-  group_by(spawn_yr) %>%
-  summarise(across(-tag_code, sum)) %>%
-  ungroup() %>%
-  select(-other)
-
 # join ma & rk capture histories
-ch_compare_df = ma_all %>%
+ch_compare_df = ma_ch %>%
   select(spawn_yr:rs_above) %>%
   mutate(user = "ma") %>%
   bind_rows(rk_all %>%
@@ -162,28 +152,48 @@ ch_compare_df = ma_all %>%
   arrange(spawn_yr, tag_code, user)
 
 # return records where capture histories don't match (takes awhile)
-mismatches = ch_compare_df %>%
+mismatch_ch = ch_compare_df %>%
   group_by(spawn_yr, tag_code) %>%
   filter(any(across(release_lgr:rs_above, ~ . != first(.)))) %>%
   ungroup()
-  
-nrow(mismatches) / 2
-  (nrow(mismatches) / nrow(ch_compare_df)) * 100
-  
-# Choose data set to proceed with
-ch_all <- rk_all    
-    
-# Add metadata before saving
-tag_summary <- ch_all %>%
-  left_join(tag_meta %>%
-              distinct(tag_code, .keep_all = TRUE),
-            by = c("spawn_yr", "tag_code")) %>%
-  group_by(tag_code) %>%
-  filter(!(tag_code == "384.3B23AD5B2A" & row_number() > 1)) %>%
-  ungroup() %>%
-  mutate(across(c(SRR, LGDFLmm, GenSex, GenStock), ~ if_else(tag_code == "384.3B23AD5B2A", NA, .)))
 
-# create model data----
+# quick checks  
+nrow(mismatch_ch) / 2                           # number of fish with mis-matching ch's depending on method
+(nrow(mismatch_ch) / nrow(ch_compare_df)) * 100  # percent of all fish with mis-matching ch's
+  
+# choose data set to proceed with
+ch_df <- rk_ch    
+    
+# add metadata before saving
+tag_summary <- ch_df %>%
+  left_join(tag_meta %>%
+              distinct(tag_code, .keep_all = TRUE) %>%
+              # covariates to keep, for now
+              select(spawn_yr,
+                     tag_code,
+                     srr,
+                     spawn_site,
+                     final_node,
+                     mpg,
+                     popid,
+                     popname,
+                     fl_mm = lgdf_lmm,
+                     a_or_b,
+                     fw_age,
+                     sw_age,
+                     total_age,
+                     gen_sex,
+                     gen_stock,
+                     gen_stock_prob,
+                     gen_parent_hatchery,
+                     gen_by),
+            by = c("spawn_yr", "tag_code"))
+  # group_by(tag_code) %>%
+  # filter(!(tag_code == "384.3B23AD5B2A" & row_number() > 1)) %>%
+  # ungroup() %>%
+  # mutate(across(c(SRR, LGDFLmm, GenSex, GenStock), ~ if_else(tag_code == "384.3B23AD5B2A", NA, .)))
+
+# create model data
 ch_mod_dat <- tag_summary %>%
   #select(-other) %>% # extra field from previous step
   filter(spawner_above == 1) %>%
@@ -194,13 +204,17 @@ ch_mod_dat <- tag_summary %>%
          rs_all = max(c_across(c(rs_bon, rs_lgr, rs_above)))) %>%
   mutate(rs_lgr = max(c_across(c(rs_lgr, rs_above)))) %>%
   ungroup() %>%
-  select(spawn_yr, tag_code, species:a_or_b, everything())
+  select(spawn_yr, tag_code, srr:gen_by, everything())
 
-tmp <- ch_mod_dat %>%
+# a final summary of capture histories, by spawn year
+ch_summary <- ch_mod_dat %>%
   group_by(spawn_yr) %>%
   summarise(across(.cols = c(release_lgr:rs_lgr, ), sum))
 
-save(ch_mod_dat, file = paste0('./data/input/cjs_model_data_sy',sy,'.Rda'))
+# save results
+save(ch_mod_dat, file = paste0('./data/input/cjs_model_data_sy', max_sy, '.Rda'))
 
+# clear environment
 rm(list = ls())
 
+### END SCRIPT

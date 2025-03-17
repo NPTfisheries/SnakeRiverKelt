@@ -1,13 +1,20 @@
+# load packages
 library(tidyverse)
 library(marked)
 
-# load data----
-sy <- 2024
+# set arguments
+max_sy <- 2024
 
-load(paste0('./data/input/cjs_model_data_sy',sy,'.Rda'))
+# load data
+load(paste0('./data/input/cjs_model_data_sy', max_sy,'.Rda'))
 
-
-df <- ch_mod_dat[ch_mod_dat$spawner_above == 1 & !is.na(ch_mod_dat$popid) & !grepl("/", ch_mod_dat$popid),]
+df = ch_mod_dat %>%
+  # recode SC1 & SC2 spawners to CRSFC-s
+  mutate(popid = recode(popid, "CRLMA-s/CRSFC-s" = "CRSFC-s")) %>%
+  # keep adults observed spawning and with an assigned final population
+  filter(spawner_above == 1 & !is.na(popid) & !grepl("/", popid))
+  
+#df <- ch_mod_dat[ch_mod_dat$spawner_above == 1 & !is.na(ch_mod_dat$popid) & !grepl("/", ch_mod_dat$popid),]
 
 df %>% 
   group_by(spawn_yr) %>% 
@@ -28,7 +35,6 @@ mod_dat <- data.frame(
 mod_dat$mpg <- as.factor(mod_dat$mpg)
 mod_dat$pop <- as.factor(mod_dat$pop)
 mod_dat$year <- as.factor(mod_dat$year)
-
 
 # create function to run all models
 fit.kelt.cjs.models <- function(){
@@ -174,4 +180,4 @@ ggsave('./figures/kelt_lgd_avg_survival.png', fig_avg_s,
        width = 11, height = 8.5,
        dpi = 600, units = 'in', device = "png")
 
-save(df, mod_dat, kelt.cjs.models, best_mod, best_res, phi_lgd,  file =paste0('./data/output/mod_dat_sy', sy,'.Rda'))
+save(df, mod_dat, kelt.cjs.models, best_mod, best_res, phi_lgd,  file =paste0('./data/output/mod_dat_sy', max_sy,'.Rda'))

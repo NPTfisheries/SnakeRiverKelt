@@ -6,7 +6,7 @@
 #   Date Last Modified: 2025-03-17
 #   Modified By: Mike Ackerman
 
-# load packages and functions
+# load packages
 library(tidyverse)
 library(sf)
 

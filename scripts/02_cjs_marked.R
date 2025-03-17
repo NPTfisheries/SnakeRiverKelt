@@ -9,11 +9,13 @@ max_sy <- 2024
 load(paste0('./data/input/cjs_model_data_sy', max_sy,'.Rda'))
 
 df = ch_mod_dat %>%
-  # recode SC1 & SC2 spawners to CRSFC-s
+  # keep just records with spawning observations and a final spawning population
+  filter(spawner_above == 1 & !is.na(popid)) %>%
+  # recode some spawners to populations, if desired
   mutate(popid = recode(popid, "CRLMA-s/CRSFC-s" = "CRSFC-s")) %>%
-  # keep adults observed spawning and with an assigned final population
-  filter(spawner_above == 1 & !is.na(popid) & !grepl("/", popid))
-  
+  # remove some observations with an unknown final population (e.g., SFG, USE, USI)
+  filter(!grepl("/", popid))
+
 #df <- ch_mod_dat[ch_mod_dat$spawner_above == 1 & !is.na(ch_mod_dat$popid) & !grepl("/", ch_mod_dat$popid),]
 
 df %>% 

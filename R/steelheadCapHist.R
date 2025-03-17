@@ -1,4 +1,4 @@
-# # Get CapHist File for Steelhead
+# Create capture histories for steelhead including spawner, kelt, and repeat spawner observations.
 #' Title
 #'
 #' @param x 

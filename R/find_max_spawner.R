@@ -26,7 +26,9 @@ find_max_spawner = function(df) {
     mutate(tmp = case_when(
       min_det <= max_spawner_det ~ "spawner",
       TRUE ~ life_stage
-    ))
+    )) %>%
+    mutate(life_stage = tmp) %>%
+    select(-tmp, -max_spawner_det)
   
   return(tmp)
 }

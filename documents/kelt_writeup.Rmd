@@ -134,9 +134,9 @@ df %>%
 ```{r length-plot, fig.cap="Length distribution of steelhead sampled at Lower Granite Dam and later detected in spawning areas at instream PIT-tag detection systems."}
 df %>%
   group_by(popid) %>%
-  mutate(muFL = mean(LGDFLmm, na.rm = TRUE)) %>%
+  mutate(muFL = mean(fl_mm, na.rm = TRUE)) %>%
   ungroup() %>%
-  ggplot(aes(x = fct_reorder(popid, muFL), y = LGDFLmm)) +
+  ggplot(aes(x = fct_reorder(popid, muFL), y = fl_mm)) +
   geom_boxplot() +
   coord_flip() +
   #geom_density() +
@@ -160,9 +160,9 @@ df %>%
 
 ```{r sex-plot, fig.cap="Distribution of the proportion of female steelhead sampled at Lower Granite Dam and later detected in spawning areas at instream PIT-tag detection systems."}
 df %>%
-  filter(GenSex %in% c('F', 'M')) %>%
+  filter(gen_sex %in% c('F', 'M')) %>%
   group_by(spawn_yr, popid) %>%
-  summarise(p = mean(GenSex == "F"),
+  summarise(p = mean(gen_sex == "F"),
             .groups = "drop") %>%
   ggplot(aes(x = fct_reorder(popid,p), y = p)) +
   geom_boxplot() +
@@ -268,9 +268,6 @@ best_res %>%
         plot.title = element_text(size = 12, face = "bold", hjust = 0)) # Centered title
 ```
 
-
-
-
 ```{r avg-sur}
 # pop average - uses an inverse weightd mean to account for precision around each individual estimate
 phi_lgd <- best_res %>%
@@ -293,8 +290,6 @@ phi_lgd %>%
         digits = 3) %>%
   kable_styling(bootstrap_options = 'striped')
 ```
-
-
 
 ```{r avg-sur-plot, fig.cap = "Average weighted survival (calculated using the inverse variance) of adult steelhead spawners to the kelt life-stage at Lower Granite Dam."}
 phi_lgd %>%

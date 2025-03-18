@@ -94,7 +94,7 @@ cth_df = pitcleanr_df %>%
          path)
 
 # use find_max_spawner to fix errant kelt observations?
-fix_errant_kelt_calls = F
+fix_errant_kelt_calls = T
 
 # apply find_max_spawner only if fix_errant_kelt_calls is TRUE
 if (fix_errant_kelt_calls) {
@@ -165,6 +165,7 @@ nrow(mismatch_ch) / 2                           # number of fish with mis-matchi
 ch_df <- rk_ch    
     
 # add metadata before saving
+# note: this needs to be updated if we want to include covariates for supplementation fish and/or other adults that don't make it to dabom.
 tag_summary <- ch_df %>%
   left_join(tag_meta %>%
               distinct(tag_code, .keep_all = TRUE) %>%

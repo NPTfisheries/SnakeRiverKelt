@@ -14,7 +14,9 @@ df = ch_mod_dat %>%
   # recode some spawners to populations, if desired
   mutate(popid = recode(popid, "CRLMA-s/CRSFC-s" = "CRSFC-s")) %>%
   # remove some observations with an unknown final population (e.g., SFG, USE, USI)
-  filter(!grepl("/", popid))
+  filter(!grepl("/", popid)) %>%
+  filter(srr == '32W') %>%
+  filter()
 
 #df <- ch_mod_dat[ch_mod_dat$spawner_above == 1 & !is.na(ch_mod_dat$popid) & !grepl("/", ch_mod_dat$popid),]
 

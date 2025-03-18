@@ -83,6 +83,7 @@ options(knitr.kable.NA = '--')
 
 ```{r load-pkgs}
 library(tidyverse)
+library(marked)
 source('../R/theme_rk.R')
 ```
 
@@ -98,13 +99,15 @@ load(paste0('../data/output/mod_dat_sy', sy,'.Rda'))
 
 # Data Source
 
-The dataset used in this analysis comprises of PIT-tag observations of adult steelhead (newly or previously tagged) trapped at the Lower Granite Dam (LGR) adult ladder during spawn years 2010 - 2024. We generated PIT-tag observations by first compiling a list of adult steelhead with *valid* PIT-tag codes collected at the LGR adult trap between July 1 and June 30 of each spawn year [@Baum2023; @Ogden2020]. All phenotypic natural-origin fish (e.g., present adipose fin and absence of a coded-wire tag) are included as part of the *valid* tag list. Any phenotypic natural-origin originating from hatchery broodstock is later identified using parentage-based tagging [@Steele2013; @Steele2019; @Baum2023]. For this analysis, we included natural-origin adults originating from hatchery broodstock (e.g., supplementation fish), but those could easily be removed or analyzed separately, if desired. A PIT-tag code was considered *valid* if the adult steelhead was trapped while ascending the LGR fish ladder during a systematic subsampling period, was greater than 30 cm FL, and not missing fields within the LGR trapping database [@Baum2023]. Once the valid tag was developed, we retrieved all PIT-tag interrogations for each code using the complete tag history query from [PTAGIS](https://www.ptagis.org). Observations were then processed within the [SnakeRiverFishStatus](https://github.com/NPTfisheries/SnakeRiverFishStatus) GitHub repo using scripts maintained there.
+The final dataset used in this analysis comprises of PIT-tag observations of natural-origin adult steelhead (newly or previously tagged) trapped at the Lower Granite Dam (LGD) adult ladder during spawn years 2010 - 2024 and later detected on the spawning grounds at instream PIT-tag detection systems. We generate the dataset by first compiling a list of PIT-tag observations for adult steelhead with *valid* PIT-tag codes collected at the LGD adult trap between July 1 and June 30 of each spawn year [@Baum2023; @Ogden2020]. All phenotypic natural-origin fish (e.g., present adipose fin and absence of a coded-wire tag) are included as part of the *valid* tag list. Adipose fin intact hatchery-origin fish are identified using parentage-based tagging [@Steele2013; @Steele2019; @Baum2023] and are excluded from the *valid* tag list. 
 
-The full complete tag history was initially prcessed using the `PITcleanr::compression()` function [@See2024] in the R statistical software [@R-base]. This function, along with a supplied configuration file, collapsed multiple PIT-tag interrogations at the same location and within a similar time frame into a single record, retaining only essential information: the PIT-tag code, observation location (i.e., node), and the minimum and maximum timestamps of observations at that location (i.e., PIT-tag arrays or sites) into a single geographic location of interest. For instance, all PIT-tag detection sites at Bonneville Dam (e.g., BCC, B2J, etc.) were merged into a single node, while LGR sites were categorized into a downstream migration node (GRJ, GRS) and an upstream migration node (GRA, LGRLDR, LGR). All detections upstream of LGR remained distinct to facilitate assignment of detections to specific spawning locations and identify movement direction. Finally, we truncated the dataset to include only observations occurring after an upstream-migrating steelhead was first detected at the LGR adult trap, excluding all juvenile and pre-return adult observations.
+A PIT-tag code was considered *valid* if the adult steelhead was trapped while ascending the LGD fish ladder during a systematic subsampling period, had a fork length (FL) greater than 30 cm, and was not missing potential covariate fields (e.g., fork length, sex, genetic stock, age) within the LGD trapping database [@Baum2023]. Once the valid tag list was developed, we retrieved all PIT-tag interrogations for each code using the complete tag history query from [PTAGIS](https://www.ptagis.org). Observations were then processed using the statistical programming language R [@R-base] and the [PITcleanr](https://kevinsee.github.io/PITcleanr/) package [@See2024]. PIT-tag observations and data processing scripts are maintained within the [SnakeRiverFishStatus](https://github.com/NPTfisheries/SnakeRiverFishStatus) GitHub repository.
 
-The resulting dataset consists of PIT-tag observations from a randomly samples subset of adult steelhead migrating past LGR and potential subsequent detections indicating three distinct life stages: spawners, kelts, and repeat spawners. A simple rule set was applied to classify observations to each life stage using functions in the [SnakeRiverKelt](https://github.com/NPTfisheries/SnakeRiverKelt) GitHub repo. The spawning stage was assigned to all observations before the fish's last and furthest upstream movement. The kelt stage was assigned to observations occurring at least five days after the last upstream spawner movement in a downstream direction and to any detections at Columbia and lower Snake River hydrosystem sites after April 20. The repeat spawner stage was assigned to observations following the first upstream movement in any spawn year beyond the fish's initial spawn year.
+The full complete tag history was initially processed using the `PITcleanr::compression()` function [@See2024]. This function, along with a supplied configuration file, collapsed multiple PIT-tag interrogations at the same location and within a similar time frame into a single record, retaining only essential information: the PIT-tag code, observation location (i.e., node), and the minimum and maximum timestamps of observations at that location (i.e., PIT-tag arrays or sites) or any single geographic location of interest. For instance, all PIT-tag detection sites at Bonneville Dam (e.g., BCC, B2J, etc.) were merged into a single node, while LGD sites were categorized into a downstream migration node (GRJ, GRS) and an upstream migration node (GRA, LGRLDR, LGR). All detections upstream of LGD remained distinct to facilitate assignment of detections to specific spawning locations and identify movement direction. Finally, we truncated the dataset to include only observations occurring after an upstream-migrating steelhead was first detected at the LGD adult trap, excluding all juvenile and pre-return adult observations.
 
-In the `r n_distinct(df$spawn_yr)` years of observation data, we have observed `r prettyNum(dim(df)[1], big.mark = ",")` PIT-tagged adult steelhead at Snake River spawning locations. Tables \@ref(tab:data-year) and \@ref(tab:data-pop) show the number of these unique PIT-tagged spawners for each spawn year and within each Snake River population upstream of LGD. Additionally, the tables include the sum of unique kelt observations at LGR and observations of kelt downstream (i.e., below) of LGR.
+The resulting dataset consists of PIT-tag observations from a random sample of adult steelhead migrating past LGD and all subsequent detections of fish migrating during three distinct life stages: upstream towards spawning areas (spawners), downstream post-spawning (kelt), and returning upstream through the hydrosystem (repeat spawners). A simple rule set was applied to classify observations to each life stage using functions in the [SnakeRiverKelt](https://github.com/NPTfisheries/SnakeRiverKelt) GitHub repository. The spawning stage was assigned to all observations before the fish's last and furthest upstream movement. The kelt stage was assigned to observations occurring at least five days after the last upstream spawner movement, observations indicating a downstream movement, and any detection at Columbia and lower Snake River hydro-system facilities after April 20. The repeat spawner stage was assigned to all observations following the first upstream movement in any spawn year beyond the fish's initial spawn year.
+
+In the `r n_distinct(df$spawn_yr)` years of observation data, we have observed `r prettyNum(dim(df)[1], big.mark = ",")` PIT-tagged adult steelhead at Snake River spawning locations. Tables \@ref(tab:data-year) and \@ref(tab:data-pop) show the number of these unique PIT-tagged spawners for each spawn year and within each Snake River population upstream of LGD. Additionally, the tables include the sum of unique kelt observations at LGD and observations of kelt downstream (i.e., below) of LGD.
 
 ```{r data-year, tab.cap = "Natural and hatchery origin PIT-tagged steelhead observed as spawners upstream of Lower Granite Dam (LGD) at instream PIT-tag detection systems and subsequent detections of kelt at Lower Snake and Columbia River hydrosystem facilities."}
 df %>% 
@@ -135,7 +138,7 @@ df %>%
 
 ```
 
-The largest (greatest fork length) spawners typiclly occur in the Lochsa River (CRLOC-s), SF Salmon River (SFMAI-s), South Fork Clearwater River (CRSFC-s), Lolo Creek (CRLOL-s), Selway River (CRSEL-s), Sesech River (SFSEC-s) and Middle Fork Salmon River ((MFUMA-s and MFBIG-s) populations (Figure \@ref(fig:length-plot)). The proportion of females returning to each population is lowest in the Little Salmon River (SRLSR-s) and upper mainstem Salmon River (SRUMA-s) populations and highest in the Pahsimeroi (SRPAH-s) and Panther Creek (SRPAN-s) populations (Figure \@ref(fig:sex-plot)).   
+The largest (i.e., greatest fork length) spawners typiclly occur in the Lochsa River (CRLOC-s), SF Salmon River (SFMAI-s), South Fork Clearwater River (CRSFC-s), Lolo Creek (CRLOL-s), Selway River (CRSEL-s), Sesech River (SFSEC-s) and Middle Fork Salmon River ((MFUMA-s and MFBIG-s) populations (Figure \@ref(fig:length-plot)). The proportion of females returning to each population is lowest in the Little Salmon River (SRLSR-s) and upper mainstem Salmon River (SRUMA-s) populations and highest in the Pahsimeroi (SRPAH-s) and Panther Creek (SRPAN-s) populations (Figure \@ref(fig:sex-plot)).   
 
 ```{r length-plot, fig.cap = "Length distribution of steelhead sampled at Lower Granite Dam and later detected in spawning areas at instream PIT-tag detection systems."}
 df %>%
@@ -208,19 +211,21 @@ Since spawn year and population may explain variation in survival and detection 
 
 where, \( \beta_0, \beta_1, \beta_2, \beta_3 \) are coefficients for survival (\(\phi\)) and \( \alpha_0, \alpha_1, \alpha_2, \alpha_3 \) are coefficients for detection (\( p \)). The interaction term (\(\beta_3, \alpha_3\)) tests whether survival and detection probabilities vary differently by spawn year and population combinations.
 
-We fit multiple models with different variations of the spawn year and populations and determined the best-fitting model after comparing candidate models with Akaike’s Information Criterion (AIC) [@akaike1973]. AIC is calculated as:
+We fit multiple models with different variations of spawn year and population fixed effects, and then determined the best-fitting model after comparing candidate models with Akaike’s Information Criterion (AIC) [@akaike_new_1974]. AIC is calculated as:
 
 \[
 AIC = -2 \log L + 2K
 \]
 
-where, \( L \) is the likelihood of the model given the data and \( K \) is the number of estimated parameters. The model with the lowest AIC value was selected as the most parsimonious model.
+where, \( L \) is the likelihood of the model given the data and \( K \) is the number of estimated parameters. The model with the lowest AIC value was selected as the most parsimonious and best-fitting model.
 
-All models were fitted using the `marked::cmr()` [@laake_marked_2013] function in the statistical software R [@R-base].
+All models were fit using the `marked::cmr()` [@laake_marked_2013] function in R [@R-base]. 
 
 # Results
 
-The best fitting CJS model included terms for spawn year and population for estimating survival and only spawn year for estimating detection probabilities (Table \@ref(tab:mod-results)). Figures \@ref(fig:det-plot) and \@ref(fig:suv-plot) show the estimated detection and survival probabilities for the best fitting model.  Table \@ref(tab:avg-sur-tab) and Figure \@ref(fig:avg-sur-plot) provide the weighted average of survivals across spawn years for each population. The weighted average was calculated using the inverse variance to give more precise annual estimates more weight. 
+The best fitting CJS model included terms for spawn year and population for estimating survival and only spawn year for estimating detection probabilities (Table \@ref(tab:mod-results)). Figures \@ref(fig:det-plot) and \@ref(fig:suv-plot) show the estimated detection and survival probabilities for the best fitting model. Table \@ref(tab:avg-sur-tab) and Figure \@ref(fig:avg-sur-plot) provide average survival estimates conditioned on population and marginalized over spawn years [@casella_statistical_2021].
+
+<!-- the inverse variance weighted average [@hartung_statistical_2008] of survivals across spawn years for each population.  -->
 
 ```{r mod-results, tab.cap = "Model selection criteria for fitted Cormack-Jolly-Seber models."}
 kelt.cjs.models$model.table %>%
@@ -228,6 +233,10 @@ kelt.cjs.models$model.table %>%
   kable(col.names = c('Id', 'Model', 'Parameters', 'AIC', 'Delta AIC', 'Weight', '-2Loglik'),
         label = NA) %>%
   kable_styling(bootstrap_options = 'striped')
+```
+
+```{r best-model-summ}
+summary(best_mod)
 ```
 
 
@@ -289,20 +298,50 @@ phi_lgd <- best_res %>%
   )
 ```
 
-```{r avg-sur-tab, tab.cap = "Mean weighted survival (calculated using the inverse variance) of adult steelhead spawners to the kelt life-stage at Lower Granite Dam."}
-phi_lgd %>%
+
+
+```{r pop-only}
+# Extract real parameter estimates (on probability scale)
+real_phi <- predict(best_mod, type="Phi")$Phi
+
+# Subset to time = 1
+real_phi_time1 <- real_phi[real_phi$time == 1, ]
+
+# Remove year effect by averaging over years for each population
+avg_pop_survival <- aggregate(real_phi_time1$estimate, by=list(pop=real_phi_time1$pop), FUN=mean)
+
+# Compute standard error (SE) for each population
+se_pop_survival <- aggregate(se ~ pop, data=real_phi_time1, FUN=function(x) sqrt(sum(x^2)) / length(x))
+
+# Merge estimates and SEs
+results <- merge(avg_pop_survival, se_pop_survival, by="pop")
+colnames(results) <- c("pop", "avg_Phi", "se_Phi")
+
+# Compute confidence intervals (95%)
+z_score <- 1.96  # For 95% confidence interval
+results$lower_CI <- pmax(results$avg_Phi - z_score * results$se_Phi, 0)
+results$upper_CI <- pmin(results$avg_Phi + z_score * results$se_Phi, 1)
+results$time <- rep(1, length(results[,1]))
+```
+
+
+```{r avg-sur-tab, tab.cap = "Mean survival conditioned on population and marginalized over spawn year for adult natural-origin steelhead spawners surviving to the kelt life-stage at Lower Granite Dam."}
+#phi_lgd %>%
+results %>%
   select(-time) %>%
-  kable(col.names = c('TRT_POPID', 'Mean Survival', 'SE(Mean)', 'Lower 95% CI', 'Upper 95% CI'),
+  arrange(avg_Phi) %>%
+  kable(col.names = c('TRT_POPID', 'Mean Survival', 'SE', 'Lower 95% CI', 'Upper 95% CI'),
         digits = 3,
         label = NA) %>%
   kable_styling(bootstrap_options = 'striped')
 ```
 
-```{r avg-sur-plot, fig.cap = "Average weighted survival (calculated using the inverse variance) of adult steelhead spawners to the kelt life-stage at Lower Granite Dam."}
-phi_lgd %>%
+```{r avg-sur-plot, fig.cap = "Mean survival conditioned on population and marginalized over spawn year for adult natural-origin steelhead spawners surviving to the kelt life-stage at Lower Granite Dam."}
+results %>%
   ggplot(aes(x = fct_reorder(pop,avg_Phi), y = avg_Phi)) +
   geom_errorbar(aes(ymin = lower_CI, ymax = upper_CI)) +
   geom_point() +
+  scale_y_continuous(limits = c(0,1)) +
   coord_flip() +
   labs(#title = 'Snake River Basin Steelhead Kelt',
        #subtitle = 'Average survival of adult steelhead from Snake River population spawning areas to the kelt life-stage at Lower Granite Dam.',
@@ -315,6 +354,8 @@ phi_lgd %>%
         legend.text = element_text(size = 10),
         plot.title = element_text(size = 12, face = "bold", hjust = 0)) # Centered title
 ```
+
+
 
 \newpage
 # References

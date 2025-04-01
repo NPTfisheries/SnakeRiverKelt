@@ -10,6 +10,7 @@
 library(tidyverse)
 library(sf)
 library(readxl)
+library(janitor)
 
 # source some helper functions
 source('./R/find_max_spawner.R')
@@ -74,7 +75,7 @@ critfc_kelt_df = read_xlsx(path = "data/input/SY2016-2021 collected fish with ta
   janitor::clean_names() %>%
   # clean up collection_year column
   mutate(collection_year = as.numeric(recode(collection_year, "2019 - marked SY2018" = "2019")),
-         tag_type = "existing") %>%
+         reconditioned_kelt = "existing_pit_tag") %>%
   # join info to parse kelts newly tagged at lgr vs. those with previous tags
   left_join(
     read_xlsx(path = "data/input/SY2016-2021 collected fish with tag_lej.xlsx",
@@ -84,12 +85,12 @@ critfc_kelt_df = read_xlsx(path = "data/input/SY2016-2021 collected fish with ta
       mutate(new_lgr_tag = TRUE),
     by = c("collection_year", "pit_tag_code")
   ) %>%
-  mutate(tag_type = if_else(!is.na(new_lgr_tag), "new_lgr_tag", tag_type)) %>%
+  mutate(reconditioned_kelt = if_else(!is.na(new_lgr_tag), "new_lgr_pit_tag", reconditioned_kelt)) %>%
   select(-new_lgr_tag,
          tag_code = pit_tag_code)
 
 # quick qc; there's some minor mismatches from critfc's summary
-tabyl(critfc_kelt_df, tag_type, collection_year) %>%
+tabyl(critfc_kelt_df, reconditioned_kelt, collection_year) %>%
   adorn_totals()
 
 #---------------
@@ -205,11 +206,17 @@ ch_bio_df = ch_df %>%
               select(spawn_yr,
                      tag_code,
                      srr,
+                     lgd_marks_all,
+                     lgd_mark_ad,
+                     lgd_tags_all,
                      lgd_fl_mm,
                      bio_scale_final_age,
+                     ptagis_last_event_site,
+                     ptagis_last_event_date,
+                     ptagis_event_last_spawn_site,
                      gen_sex,
                      gen_stock,
-                     gen_stock_prob,
+                     #gen_stock_prob,
                      gen_parent_hatchery,
                      gen_by,
                      gen_pbt_by_hat,
@@ -225,23 +232,25 @@ ch_bio_df = ch_df %>%
                      mpg,
                      popid,
                      popname,
-                     a_or_b,
                      fw_age,
                      sw_age,
                      total_age),
             by = c("spawn_yr", "tag_code")) %>%
   # identify fish within the kelt reconditioning program dataset
-  mutate(reconditioned_kelt = if_else(
-    paste0(spawn_yr, tag_code) %in% paste0(critfc_kelt_df$collection_year, critfc_kelt_df$tag_code),
-    TRUE, FALSE
-  ))
+  left_join(critfc_kelt_df %>%
+              select(collection_year, tag_code, reconditioned_kelt),
+            by = c("spawn_yr" = "collection_year", "tag_code")) %>%
+  mutate(reconditioned_kelt = ifelse(is.na(reconditioned_kelt), "not_reconditioned", reconditioned_kelt))
+
+#---------------
+# some qa/qc
 
 # are there any duplicate tag codes within a spawn year?
 any(duplicated(ch_bio_df[c("spawn_yr", "tag_code")]))
 
 # check capture histories of reconditioned kelts
 ch_bio_df %>%
-  filter(reconditioned_kelt == T) %>%
+  filter(!reconditioned_kelt == "not_reconditioned") %>%
   select(spawn_yr,
          tag_code,
          release_lgr:rs_above) %>%
@@ -249,39 +258,73 @@ ch_bio_df %>%
   summarise(across(-tag_code, sum)) %>%
   ungroup()
 
-# verify all reconditioned kelts are females
+# check sexes of reconditioned vs. all kelts
 ch_bio_df %>%
-  filter(reconditioned_kelt == T) %>%
-  tabyl(gen_sex)
+  tabyl(reconditioned_kelt, gen_sex)
 
-# check srrs
+# check srrs of reconditioned vs. all kelts
 ch_bio_df %>%
-  tabyl(spawn_yr, srr)
+  tabyl(reconditioned_kelt, srr)
 
-### CONTINUE HERE
-
-# create model data
-ch_mod_dat <- tag_summary %>%
-  #select(-other) %>% # extra field from previous step
-  filter(spawner_above == 1) %>%
-  #filter(!(POP_NAME %in% c('GRA', 'RAPH', 'OXBO', 'DNFH'))) %>% #hatcheries and unknown spawning areas
-  rowwise() %>%
-  mutate(kelt_below = max(c_across(c(kelt_goa:rs_above))),
-         kelt_rs = max(c_across(c(kelt_bon, rs_bon, rs_lgr, rs_above))),
-         rs_all = max(c_across(c(rs_bon, rs_lgr, rs_above)))) %>%
-  mutate(rs_lgr = max(c_across(c(rs_lgr, rs_above)))) %>%
-  ungroup() %>%
-  select(spawn_yr, tag_code, srr:gen_by, everything())
-
-# a final summary of capture histories, by spawn year
-ch_summary <- ch_mod_dat %>%
-  group_by(spawn_yr) %>%
-  summarise(across(.cols = c(release_lgr:rs_lgr, ), sum))
+# data frame of 32H reconditioned kelts
+rc_kelt_32h = ch_bio_df %>%
+  filter(!reconditioned_kelt == "not_reconditioned",
+         srr == "32H")
 
 # save results
-save(ch_mod_dat, file = paste0('./data/input/cjs_model_data_sy', max_sy, '.Rda'))
+save(ch_bio_df, file = paste0("./data/input/compiled_lgr_kelt_data_sy", max_sy, ".rda"))
 
 # clear environment
 rm(list = ls())
 
 ### END SCRIPT
+
+# I THINK MOVE EVERYTHING BELOW HERE TO 02_cjs_marked.R script
+
+# NOTES: 
+#   * Verify the nature of CRITFC's existing vs. 'LGR tagged and collected' tag lists
+#   * Focus on SRR = 32W
+#   * Trim down to fish with known sexes
+#      - include sex as covariate
+#   * Remove supplementation fish
+#      - add cwt and ad-status info to dataset
+#   * Remove CRITFC reconditioned kelt from larger dataset
+
+#---------------
+# prep model data
+# ch_mod_dat = ch_bio_df %>%
+#   filter(reconditioned_kelt == "not_reconditioned",  # remove kelts removed by the reconditioning program
+#          srr == "32W",                               # remove supplementation fish and "errant" species-run-rear combos
+#          gen_sex %in% c("F", "M")) %>%               # remove fish with unknown sexes (NG, U, NA)
+#   # remove "other" capture histories
+#   select(-other) %>%
+#   # focus on fish identified as a spawner somewhere
+#   filter(spawner_above == 1) %>%
+#   rowwise() %>%
+#   mutate(kelt_blw = max(c_across(c(kelt_goa:rs_above))),                 # was kelt observed anywhere downstream, including on return spawn
+#          kelt_rs = max(c_across(c(kelt_bon, rs_bon, rs_lgr, rs_above))), # was kelt observed making it down to bon and/or as return spawner
+#          rs_all = max(c_across(c(rs_bon, rs_lgr, rs_above))),            # was kelt observed as a repeat spawner to bon or upstream
+#          rs_lgr = max(c_across(c(rs_lgr, rs_above)))) %>%                # was kelt observed as a repeat spawner to lgr or upstream
+#   ungroup() %>%
+#   select(spawn_yr, tag_code, reconditioned_kelt, srr:total_age, everything())
+# 
+# # create model data
+# ch_mod_dat <- tag_summary %>%
+#   #select(-other) %>% # extra field from previous step
+#   filter(spawner_above == 1) %>%
+#   #filter(!(POP_NAME %in% c('GRA', 'RAPH', 'OXBO', 'DNFH'))) %>% #hatcheries and unknown spawning areas
+#   rowwise() %>%
+#   mutate(kelt_below = max(c_across(c(kelt_goa:rs_above))),
+#          kelt_rs = max(c_across(c(kelt_bon, rs_bon, rs_lgr, rs_above))),
+#          rs_all = max(c_across(c(rs_bon, rs_lgr, rs_above)))) %>%
+#   mutate(rs_lgr = max(c_across(c(rs_lgr, rs_above)))) %>%
+#   ungroup() %>%
+#   select(spawn_yr, tag_code, srr:gen_by, everything())
+# 
+# # a final summary of capture histories, by spawn year
+# ch_summary <- ch_mod_dat %>%
+#   group_by(spawn_yr) %>%
+#   summarise(across(.cols = c(release_lgr:rs_lgr, ), sum))
+# 
+# # save results
+# save(ch_mod_dat, file = paste0('./data/input/cjs_model_data_sy', max_sy, '.Rda'))

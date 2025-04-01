@@ -3,19 +3,19 @@
 #
 # Author: Ryan N. Kinzer
 # Date Created: 2021-10-08
-#   Date Last Modified: 2025-03-17
+#   Date Last Modified: 2025-04-01
 #   Modified By: Mike Ackerman
 
 # load packages
 library(tidyverse)
 library(sf)
+library(readxl)
 
 # source some helper functions
 source('./R/find_max_spawner.R')
 source("./R/steelheadCapHist.R")
 
 # set some parameters
-spp = "Steelhead"
 yr_range = 2010:2024
 max_sy = max(yr_range)
 
@@ -42,10 +42,10 @@ pitcleanr_df = list.files(path = PITcleanr_folder,
       mutate(spawn_yr = as.numeric(spawn_yr))
   })
 
-# load life history data
-tag_meta = list.files(path = lh_folder,
-                      pattern = "Steelhead",
-                      full.names = T) %>%
+# load life history data (do I need this?)
+lh_df = list.files(path = lh_folder,
+                   pattern = "Steelhead",
+                   full.names = T) %>%
   map_df(~ readxl::read_xlsx(
     path = .x,
     sheet = "tag_lh"
@@ -54,10 +54,43 @@ tag_meta = list.files(path = lh_folder,
   janitor::clean_names()
 
 # load lgtrappingdb
-# trap_df = read_csv(trap_path) %>%
-#   # some LOSALM & LOCLWR genstocks are errantly coded as LOWSALM & LOWCLWR
-#   mutate(GenStock = recode(GenStock, "LOWSALM" = "LOSALM")) %>%
-#   mutate(GenStock = recode(GenStock, "LOWCLWR" = "LOCLWR"))
+trap_df = read_csv(trap_path) %>%
+  janitor::clean_names() %>%
+  # some LOSALM & LOCLWR genstocks are errantly coded as LOWSALM & LOWCLWR
+  mutate(gen_stock = recode(gen_stock, "LOWSALM" = "LOSALM")) %>%
+  mutate(gen_stock = recode(gen_stock, "LOWCLWR" = "LOCLWR")) %>%
+  # keep just adults (i.e., returning fish)
+  filter(lgd_life_stage == "RF",
+         !spawn_year == "None") %>%
+  # clean up some columns
+  rename(lgd_fl_mm = lgdf_lmm,
+         spawn_yr = spawn_year,
+         tag_code = lgd_num_pit) %>%
+  mutate(spawn_yr = as.numeric(str_remove(spawn_yr, "SY")))
+
+# load kelts collected for reconditioning program from critfc
+critfc_kelt_df = read_xlsx(path = "data/input/SY2016-2021 collected fish with tag_lej.xlsx",
+                           sheet = "16-21 SY existing tag list") %>%
+  janitor::clean_names() %>%
+  # clean up collection_year column
+  mutate(collection_year = as.numeric(recode(collection_year, "2019 - marked SY2018" = "2019")),
+         tag_type = "existing") %>%
+  # join info to parse kelts newly tagged at lgr vs. those with previous tags
+  left_join(
+    read_xlsx(path = "data/input/SY2016-2021 collected fish with tag_lej.xlsx",
+              sheet = "16-21 LGR tagged and collected") %>%
+      janitor::clean_names() %>%
+      select(collection_year, pit_tag_code) %>%
+      mutate(new_lgr_tag = TRUE),
+    by = c("collection_year", "pit_tag_code")
+  ) %>%
+  mutate(tag_type = if_else(!is.na(new_lgr_tag), "new_lgr_tag", tag_type)) %>%
+  select(-new_lgr_tag,
+         tag_code = pit_tag_code)
+
+# quick qc; there's some minor mismatches from critfc's summary
+tabyl(critfc_kelt_df, tag_type, collection_year) %>%
+  adorn_totals()
 
 #---------------
 # generate a common complete tag history dataset
@@ -92,12 +125,12 @@ cth_df = pitcleanr_df %>%
          max_det,
          lgr_max_det,
          path)
-
+  
 # use find_max_spawner to fix errant kelt observations?
-fix_errant_kelt_calls = T
+fix_errant_kelt_calls = TRUE
 
 # apply find_max_spawner only if fix_errant_kelt_calls is TRUE
-if (fix_errant_kelt_calls) {
+if (fix_errant_kelt_calls == TRUE) {
   cth_df = cth_df %>%
     group_by(spawn_yr) %>%
     nest() %>%
@@ -106,8 +139,8 @@ if (fix_errant_kelt_calls) {
     unnest(new) 
 }
 
-# RK direction
-rk_ch <- cth_df %>%
+# RK method
+rk_ch = cth_df %>%
   ungroup() %>%
   group_by(spawn_yr) %>%
   nest() %>%
@@ -116,7 +149,7 @@ rk_ch <- cth_df %>%
   select(-data) %>%
   unnest(ch)
 
-# MA direction
+# MA method
 source("./R/steelheadCapHist_MA.R")
 ma_ch = cth_df %>%
   ungroup() %>%
@@ -143,9 +176,8 @@ ma_ch_summary = ma_ch %>%
 
 # join ma & rk capture histories
 ch_compare_df = ma_ch %>%
-  select(spawn_yr:rs_above) %>%
   mutate(user = "ma") %>%
-  bind_rows(rk_all %>%
+  bind_rows(rk_ch %>%
               select(-other) %>%
               mutate(user = "rk")) %>%
   select(spawn_yr, tag_code, user, everything()) %>%
@@ -162,37 +194,71 @@ nrow(mismatch_ch) / 2                           # number of fish with mis-matchi
 (nrow(mismatch_ch) / nrow(ch_compare_df)) * 100  # percent of all fish with mis-matching ch's
   
 # choose data set to proceed with
-ch_df <- rk_ch    
-    
-# add metadata before saving
-# note: this needs to be updated if we want to include covariates for supplementation fish and/or other adults that don't make it to dabom.
-tag_summary <- ch_df %>%
-  left_join(tag_meta %>%
-              distinct(tag_code, .keep_all = TRUE) %>%
-              # covariates to keep, for now
+ch_df = rk_ch
+
+# add metadata
+ch_bio_df = ch_df %>%
+  # from lower granite trapping database
+  left_join(trap_df %>%
+              filter(!is.na(tag_code)) %>%
+              distinct(spawn_yr, tag_code, .keep_all = TRUE) %>%
               select(spawn_yr,
                      tag_code,
                      srr,
+                     lgd_fl_mm,
+                     bio_scale_final_age,
+                     gen_sex,
+                     gen_stock,
+                     gen_stock_prob,
+                     gen_parent_hatchery,
+                     gen_by,
+                     gen_pbt_by_hat,
+                     gen_pbt_r_group),
+            by = c("spawn_yr", "tag_code")) %>%
+  # additional fields from SnakeRiverFishStatus life history folders (this will only include fish that made it to dabom; e.g., exclude supplementation fish)
+  left_join(lh_df %>%
+              distinct(spawn_yr, tag_code, .keep_all = TRUE) %>%
+              select(spawn_yr,
+                     tag_code,
                      spawn_site,
                      final_node,
                      mpg,
                      popid,
                      popname,
-                     fl_mm = lgdf_lmm,
                      a_or_b,
                      fw_age,
                      sw_age,
-                     total_age,
-                     gen_sex,
-                     gen_stock,
-                     gen_stock_prob,
-                     gen_parent_hatchery,
-                     gen_by),
-            by = c("spawn_yr", "tag_code"))
-  # group_by(tag_code) %>%
-  # filter(!(tag_code == "384.3B23AD5B2A" & row_number() > 1)) %>%
-  # ungroup() %>%
-  # mutate(across(c(SRR, LGDFLmm, GenSex, GenStock), ~ if_else(tag_code == "384.3B23AD5B2A", NA, .)))
+                     total_age),
+            by = c("spawn_yr", "tag_code")) %>%
+  # identify fish within the kelt reconditioning program dataset
+  mutate(reconditioned_kelt = if_else(
+    paste0(spawn_yr, tag_code) %in% paste0(critfc_kelt_df$collection_year, critfc_kelt_df$tag_code),
+    TRUE, FALSE
+  ))
+
+# are there any duplicate tag codes within a spawn year?
+any(duplicated(ch_bio_df[c("spawn_yr", "tag_code")]))
+
+# check capture histories of reconditioned kelts
+ch_bio_df %>%
+  filter(reconditioned_kelt == T) %>%
+  select(spawn_yr,
+         tag_code,
+         release_lgr:rs_above) %>%
+  group_by(spawn_yr) %>%
+  summarise(across(-tag_code, sum)) %>%
+  ungroup()
+
+# verify all reconditioned kelts are females
+ch_bio_df %>%
+  filter(reconditioned_kelt == T) %>%
+  tabyl(gen_sex)
+
+# check srrs
+ch_bio_df %>%
+  tabyl(spawn_yr, srr)
+
+### CONTINUE HERE
 
 # create model data
 ch_mod_dat <- tag_summary %>%

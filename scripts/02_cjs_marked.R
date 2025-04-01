@@ -1,3 +1,11 @@
+# Purpose: Final prep of results from 01_prep_data for CJS modes
+#   and run various CJS models
+#
+# Author: Ryan N. Kinzer
+# Date Created: Unknown
+#   Date Last Modified: 2025-04-02
+#   Modified By: Mike Ackerman
+
 # load packages
 library(tidyverse)
 library(marked)
@@ -6,7 +14,8 @@ library(marked)
 max_sy <- 2024
 
 # load data
-load(paste0('./data/input/cjs_model_data_sy', max_sy,'.Rda'))
+# load(paste0('./data/input/cjs_model_data_sy', max_sy,'.Rda'))
+load(paste0("./data/input/compiled_lgr_kelt_data_sy", max_sy, ".rda"))
 
 df = ch_mod_dat %>%
   # keep just records with spawning observations and a final spawning population

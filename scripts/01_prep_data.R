@@ -271,6 +271,12 @@ rc_kelt_32h = ch_bio_df %>%
   filter(!reconditioned_kelt == "not_reconditioned",
          srr == "32H")
 
+#---------------
+# a final summary of capture histories, by spawn year
+ch_summary = ch_bio_df %>%
+  group_by(spawn_yr) %>%
+  summarise(across(.cols = c(release_lgr:rs_above, ), sum))
+
 # save results
 save(ch_bio_df, file = paste0("./data/input/compiled_lgr_kelt_data_sy", max_sy, ".rda"))
 
@@ -278,53 +284,3 @@ save(ch_bio_df, file = paste0("./data/input/compiled_lgr_kelt_data_sy", max_sy, 
 rm(list = ls())
 
 ### END SCRIPT
-
-# I THINK MOVE EVERYTHING BELOW HERE TO 02_cjs_marked.R script
-
-# NOTES: 
-#   * Verify the nature of CRITFC's existing vs. 'LGR tagged and collected' tag lists
-#   * Focus on SRR = 32W
-#   * Trim down to fish with known sexes
-#      - include sex as covariate
-#   * Remove supplementation fish
-#      - add cwt and ad-status info to dataset
-#   * Remove CRITFC reconditioned kelt from larger dataset
-
-#---------------
-# prep model data
-# ch_mod_dat = ch_bio_df %>%
-#   filter(reconditioned_kelt == "not_reconditioned",  # remove kelts removed by the reconditioning program
-#          srr == "32W",                               # remove supplementation fish and "errant" species-run-rear combos
-#          gen_sex %in% c("F", "M")) %>%               # remove fish with unknown sexes (NG, U, NA)
-#   # remove "other" capture histories
-#   select(-other) %>%
-#   # focus on fish identified as a spawner somewhere
-#   filter(spawner_above == 1) %>%
-#   rowwise() %>%
-#   mutate(kelt_blw = max(c_across(c(kelt_goa:rs_above))),                 # was kelt observed anywhere downstream, including on return spawn
-#          kelt_rs = max(c_across(c(kelt_bon, rs_bon, rs_lgr, rs_above))), # was kelt observed making it down to bon and/or as return spawner
-#          rs_all = max(c_across(c(rs_bon, rs_lgr, rs_above))),            # was kelt observed as a repeat spawner to bon or upstream
-#          rs_lgr = max(c_across(c(rs_lgr, rs_above)))) %>%                # was kelt observed as a repeat spawner to lgr or upstream
-#   ungroup() %>%
-#   select(spawn_yr, tag_code, reconditioned_kelt, srr:total_age, everything())
-# 
-# # create model data
-# ch_mod_dat <- tag_summary %>%
-#   #select(-other) %>% # extra field from previous step
-#   filter(spawner_above == 1) %>%
-#   #filter(!(POP_NAME %in% c('GRA', 'RAPH', 'OXBO', 'DNFH'))) %>% #hatcheries and unknown spawning areas
-#   rowwise() %>%
-#   mutate(kelt_below = max(c_across(c(kelt_goa:rs_above))),
-#          kelt_rs = max(c_across(c(kelt_bon, rs_bon, rs_lgr, rs_above))),
-#          rs_all = max(c_across(c(rs_bon, rs_lgr, rs_above)))) %>%
-#   mutate(rs_lgr = max(c_across(c(rs_lgr, rs_above)))) %>%
-#   ungroup() %>%
-#   select(spawn_yr, tag_code, srr:gen_by, everything())
-# 
-# # a final summary of capture histories, by spawn year
-# ch_summary <- ch_mod_dat %>%
-#   group_by(spawn_yr) %>%
-#   summarise(across(.cols = c(release_lgr:rs_lgr, ), sum))
-# 
-# # save results
-# save(ch_mod_dat, file = paste0('./data/input/cjs_model_data_sy', max_sy, '.Rda'))

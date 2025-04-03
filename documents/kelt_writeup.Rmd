@@ -8,7 +8,7 @@ author:
 - Mike Ackerman:
     email: mikea@nezperce.org
     institute: npt_mccall
-    correspondence: no
+    correspondence: yes
 date: "`r format(Sys.time(), '%d %B, %Y')`"
 output:
   bookdown::html_document2:
@@ -297,7 +297,7 @@ All models were fit using the `marked::cmr()` [@laake_marked_2013] function in R
 
 # Results
 
-The best fitting CJS model included terms for spawn year and population for estimating survival and only spawn year for estimating detection probabilities (Table \@ref(tab:mod-results)). Figures \@ref(fig:det-plot) and \@ref(fig:suv-plot) show the estimated detection and survival probabilities for the best fitting model. Table \@ref(tab:avg-sur-tab) and Figure \@ref(fig:avg-sur-plot) provide average survival estimates conditioned on population and marginalized over spawn years [@casella_statistical_2021].
+The best fitting CJS model included terms for spawn year and population for estimating survival and only spawn year for estimating detection probabilities (Table \@ref(tab:mod-results)). Figures \@ref(fig:det-plot) and \@ref(fig:surv-plot) show the estimated detection and survival probabilities for the best fitting model. Table \@ref(tab:avg-surv-tab) and Figure \@ref(fig:avg-surv-plot) provide average survival estimates conditioned on population and marginalized over spawn years [@casella_statistical_2021].
 
 <!-- the inverse variance weighted average [@hartung_statistical_2008] of survivals across spawn years for each population.  -->
 

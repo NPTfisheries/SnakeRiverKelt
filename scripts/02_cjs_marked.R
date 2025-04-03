@@ -212,11 +212,11 @@ fig_d = best_res %>%
        x = 'Spawn Year',
        y = 'P(Detection | Kelt at LGD)') +
   theme_classic() +
-  theme(axis.title = element_text(size = 12, face = "bold"),  # Larger axis labels
-        axis.text = element_text(size = 8),  # Readable tick labels
+  theme(axis.title = element_text(size = 12, face = "bold"),
+        axis.text = element_text(size = 8),
         legend.title = element_text(size = 12, face = "bold"),
         legend.text = element_text(size = 10),
-        plot.title = element_text(size = 12, face = "bold", hjust = 0)) # Centered title
+        plot.title = element_text(size = 12, face = "bold", hjust = 0))
 fig_d
 
 ggsave('./figures/kelt_lgd_detection.png', fig_d,

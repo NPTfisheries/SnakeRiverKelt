@@ -83,6 +83,7 @@ options(knitr.kable.NA = '--')
 
 ```{r load-pkgs}
 library(tidyverse)
+library(magrittr)
 library(marked)
 #source('../R/theme_rk.R')
 ```
@@ -94,103 +95,175 @@ knitr::write_bib(.packages(), "../documents/kelt_summary_package.bib")
 
 ```{r load-data}
 sy = 2024
-load(paste0('../data/input/compiled_lgr_kelt_data_sy', sy, '.rda'))
-load(paste0('../data/output/mod_dat_sy', sy, '_2025-04-03', '.rda'))
+load(paste0('../data/input/compiled_lgr_kelt_data_sy', sy, '.rda'))  # from 01_prep_data.R
+load(paste0('../data/output/mod_dat_sy', sy, '_2025-04-03', '.rda')) # from 02_cjs_marked.R
+ch_bio_df %<>%
+  mutate(popid = recode(popid, "CRLMA-s/CRSFC-s" = "CRSFC-s")) %>%
+  rowwise() %>%
+  mutate(kelt_blw = max(c_across(c(kelt_goa:rs_above)))) %>%
+  ungroup()
+  
 ```
 
-# Data Source
+# Data Sources
 
-The final dataset used in this analysis comprises of PIT-tag observations of natural-origin adult steelhead (newly or previously tagged) trapped at the Lower Granite Dam (LGD) adult ladder during spawn years 2010 - 2024 and later detected on the spawning grounds at instream PIT-tag detection systems. We generate the dataset by first compiling a list of PIT-tag observations for adult steelhead with *valid* PIT-tag codes collected at the LGD adult trap between July 1 and June 30 of each spawn year [@Baum2023; @Ogden2020]. All phenotypic natural-origin fish (e.g., present adipose fin and absence of a coded-wire tag) are included as part of the *valid* tag list. Adipose fin intact hatchery-origin fish are identified using parentage-based tagging [@Steele2013; @Steele2019; @Baum2023] and are excluded from the *valid* tag list. 
+We evaluated kelting rates of natural-origin adult steelhead observed spawning in Snake River tributaries upstream of Lower Granite Dam (LGR) moving back downstream past LGR, simultaneously estimating the kelt detection probability of LGR. The dataset used in this analysis comprises of observations of PIT-tagged natural-origin adult steelhead (newly or previously tagged) trapped at the LGR adult ladder during spawn years 2010 and subsequently detected near the spawning grounds at instream PIT-tag detection systems (IPTDS) or mark-recapture-recovery (MRR) sites. Post-spawn, PIT-tagged adults can additionally be "re-detected" moving downstream past LGR, at any downriver dam, or in the Columbia River estuary.
 
-A PIT-tag code was considered *valid* if the adult steelhead was trapped while ascending the LGD fish ladder during a systematic subsampling period, had a fork length (FL) greater than 30 cm, and was not missing potential covariate fields (e.g., fork length, sex, genetic stock, age) within the LGD trapping database [@Baum2023]. Once the valid tag list was developed, we retrieved all PIT-tag interrogations for each code using the complete tag history query from [PTAGIS](https://www.ptagis.org). Observations were then processed using the statistical programming language R [@R-base] and the [PITcleanr](https://kevinsee.github.io/PITcleanr/) package [@See2024]. PIT-tag observations and data processing scripts are maintained within the [SnakeRiverFishStatus](https://github.com/NPTfisheries/SnakeRiverFishStatus) GitHub repository.
+We generate the dataset by first compiling a list of PIT-tag observations for adult steelhead with *valid* PIT-tag codes collected at the LGR adult trap between July 1 and June 30 comprising each spawn year [@Baum2023; @Ogden2020]. All phenotypic natural-origin fish (i.e., present adipose fin and absence of a coded-wire tag) are included as part of the *valid* tag list. Phenotypic natural-orgin fish of hatchery-origin can later be identified using parentage-based tagging [@Steele2013; @Steele2019; @Baum2023]. <!-- and are excluded from the *valid* tag list. -->
 
-The full complete tag history was initially processed using the `PITcleanr::compression()` function [@See2024]. This function, along with a supplied configuration file, collapsed multiple PIT-tag interrogations at the same location and within a similar time frame into a single record, retaining only essential information: the PIT-tag code, observation location (i.e., node), and the minimum and maximum timestamps of observations at that location (i.e., PIT-tag arrays or sites) or any single geographic location of interest. For instance, all PIT-tag detection sites at Bonneville Dam (e.g., BCC, B2J, etc.) were merged into a single node, while LGD sites were categorized into a downstream migration node (GRJ, GRS) and an upstream migration node (GRA, LGRLDR, LGR). All detections upstream of LGD remained distinct to facilitate assignment of detections to specific spawning locations and identify movement direction. Finally, we truncated the dataset to include only observations occurring after an upstream-migrating steelhead was first detected at the LGD adult trap, excluding all juvenile and pre-return adult observations.
+A PIT-tag code was considered *valid* if the adult steelhead was trapped while ascending the LGR fish ladder during a systematic subsampling period, had a fork length (FL) greater than 30 cm, and was not missing data for any of the following fields: date of collection, species, FL, origin (hatchery or wild), or adipose fin status (ad-clipped or ad-intact) within the LGR trapping database [@Baum2023]. Once the valid tag list was developed, we retrieved all PIT-tag interrogations for each code using the complete tag history query from [PTAGIS](https://www.ptagis.org). Observations were then processed using the statistical programming language R [@R-base] and the [PITcleanr](https://kevinsee.github.io/PITcleanr/) package [@See2024]. PIT-tag observations and data processing scripts are maintained within the [SnakeRiverFishStatus](https://github.com/NPTfisheries/SnakeRiverFishStatus) GitHub repository.
 
-The resulting dataset consists of PIT-tag observations from a random sample of adult steelhead migrating past LGD and all subsequent detections of fish migrating during three distinct life stages: upstream towards spawning areas (spawners), downstream post-spawning (kelt), and returning upstream through the hydrosystem (repeat spawners). A simple rule set was applied to classify observations to each life stage using functions in the [SnakeRiverKelt](https://github.com/NPTfisheries/SnakeRiverKelt) GitHub repository. The spawning stage was assigned to all observations before the fish's last and furthest upstream movement. The kelt stage was assigned to observations occurring at least five days after the last upstream spawner movement, observations indicating a downstream movement, and any detection at Columbia and lower Snake River hydro-system facilities after April 20. The repeat spawner stage was assigned to all observations following the first upstream movement in any spawn year beyond the fish's initial spawn year.
+The complete tag histories were initially processed using the `PITcleanr::compress()` function [@See2024]. This function, along with a supplied configuration file, collapsed multipe PIT-tag interrogations at the same location and within a similar time frame into a single record, retaining only essential information: the PIT-tag code, observation location (i.e., node), and the minimum and maximum timestamps of observations at that location (i.e., IPTDS, MRR site, or dam). For instance, all PIT-tag detection sites at Bonneville Dam (e.g., BCC, B2J, etc.) were merged into a single node, while LGR sites were categorized into a downstream migration node (GRJ, GRS) and an upstream migration node (GRA, LGRLDR, LGR). Similar to Bonneville Dam, all detection sites within a dam between LGR and Bonneville were merged into their own node. All detections of LGR remained distinct to facilitate assignment of detections to specific spawning locations and identify movement direction. Finally, the dataset was truncated to include only observations occuring after an upstream-migrating steelhead was first detected at the LGR adult trap, excluding all juvenile and pre-return adult observations.
 
-In the `r n_distinct(df$spawn_yr)` years of observation data, we have observed `r prettyNum(dim(df)[1], big.mark = ",")` PIT-tagged adult steelhead at Snake River spawning locations. Tables \@ref(tab:data-year) and \@ref(tab:data-pop) show the number of these unique PIT-tagged spawners for each spawn year and within each Snake River population upstream of LGD. Additionally, the tables include the sum of unique kelt observations at LGD and observations of kelt downstream (i.e., below) of LGD.
+The resulting dataset consists of PIT-tag observations from a random sample of adult steelhead migrating past LGR and all subsequent detections of fish migrating during three distinct life stages: upstream towards spawning areas (spawners), downstream post-spawning (kelt), and returning upstream again through the hydrosystem (repeat spawners). A simple rule set ws then applied to classify observations to locations and each life stage using functions maintained in the [SnakeRiverKelt](https://github.com/NPTfisheries/SnakeRiverKelt) GitHub repository. The kelt stage was assigned to observations occurring at least five days after the last upstream spawner movement, observations indicating a downstram movement, and any detections at the lower Snake and Columbia river hydrosystems after April 20. The repeat spawner stage was assigned to all observations following the first upstream migration in any spawn year beyond the fish's initial spawn year.
 
-```{r data-year, tab.cap = "Natural and hatchery origin PIT-tagged steelhead observed as spawners upstream of Lower Granite Dam (LGD) at instream PIT-tag detection systems and subsequent detections of kelt at Lower Snake and Columbia River hydrosystem facilities."}
-df %>% 
-  group_by(spawn_yr) %>% 
-  summarise(`Spawner Observations` = sum(spawner_above),
-            `Kelt at LGD` = sum(kelt_grs),
-            `Kelt below LGD` = sum(kelt_below)) %>%
-  mutate(spawn_yr = as.character(spawn_yr)) %>%
-  rename(`Spawn Year` = spawn_yr) %>%
+We additionally received a list of PIT-tagged adult steelhead kelts collected from the LGR juvenile bypass for the kelt reconditioning program starting in 2016 to 2021. Because these kelts are removed from the river for reconditioning, they were filtered from our evaluation of kelting and detection rates at LGR. The list consists of adults newly tagged at LGR and part of the *valid* list and previously tagged, which may or may not be within the *valid* tag list.
+
+Finally, we refined our dataset to include only fish with a final designated species-run-rear (SRR) code of "32W" (i.e., steelhead, summer-run, wild). Hatchery-identified adults from the *valid* tag list were excluded, as they are not retained for natural-origin adult escapement analyses int he standard [SnakeRiverFishStatus](https://github.com/NPTfisheries/SnakeRiverFishStatus) workflow, and the kelt reconditioning program focuses solely on natural-origin adults. Additionally, we removed a small number of fish with undetermined sex.
+
+Kelts removed from the river for the reconditioning program were not included in our analysis of kelting and detection probability rates at LGR; however, their data were retained for comparison with all spawners observed as kelts at LGR and downstream.
+
+In the `r n_distinct(ch_bio_df$spawn_yr)` years of observation data, we have observed `r ch_bio_df %>% filter(spawner_above == 1 & !is.na(popid) & !str_detect(popid, "/")) %>% nrow() %>% prettyNum(big.mark = ",")` PIT-tagged adult steelhead at Snake River spawning locations, after refining our dataset. Tables \@ref(tab:data-year) and \@ref(tab:data-pop) show the number of these unique PIT-tagged spawners for each spawn year and within each Snake River population upstream of LGR. Additionally, the tables include the number of those spawners observed as kelt at LGR and downstream (i.e., below) of LGR.
+
+```{r data-year, tab.cap = "Natural-origin PIT-tagged steelhead released from Lower Granite Dam (LGR), observed upstream as spawners, and subsequent detections of kelt at Lower Snake and Columbia River hydrosystem facilities. Reconditioned kelt indicates spawners collected for reconditioning (i.e., removed from the river) and subsequently removed from kelting rate and detection analyses."}
+ch_bio_df %>%
+  filter(srr == "32W") %>%
+  filter(gen_sex %in% c("F", "M")) %>%
+  group_by(spawn_yr) %>%
+  summarise(
+    release_lgr = sum(release_lgr == 1),
+    spawner_obs = sum(spawner_above == 1 & !is.na(popid) & !str_detect(popid, "/")),
+    kelt_grs    = sum(spawner_above == 1 & !is.na(popid) & !str_detect(popid, "/") & kelt_grs == 1),
+    critfc_kelt = sum(spawner_above == 1 & !is.na(popid) & !str_detect(popid, "/") & str_detect(reconditioned_kelt, "existing_pit_tag|new_lgr_pit_tag")),
+    kelt_blw    = sum(spawner_above == 1 & !is.na(popid) & !str_detect(popid, "/") & kelt_blw == 1)
+  ) %>%
+  select(
+    `Spawn Year` = spawn_yr,
+    `Released LGR` = release_lgr,
+    `Spawner Obs` = spawner_obs,
+    `Kelt at LGR` = kelt_grs,
+    `Reconditioned Kelt` = critfc_kelt,
+    `Kelt Below LGR` = kelt_blw
+  ) %>%
   janitor::adorn_totals() %>%
-  kable(label = NA) %>%
-  kable_styling(bootstrap_options = c('striped', 'condensed'))
+  kable(align = "cccccc",
+        label = NA) %>%
+  kable_styling(full_width = F,
+                position = "center",
+                bootstrap_options = c("striped", "condensed"))
 
+# df %>% 
+#   group_by(spawn_yr) %>% 
+#   summarise(`Spawner Observations` = sum(spawner_above),
+#             `Kelt at LGD` = sum(kelt_grs),
+#             `Kelt below LGD` = sum(kelt_below)) %>%
+#   mutate(spawn_yr = as.character(spawn_yr)) %>%
+#   rename(`Spawn Year` = spawn_yr) %>%
+#   janitor::adorn_totals() %>%
+#   kable(label = NA) %>%
+#   kable_styling(bootstrap_options = c('striped', 'condensed'))
 ```
 
 ```{r data-pop, tab.cap = "Natural and hatchery origin PIT-tagged steelhead observed as spawners upstream of Lower Granite Dam (LGD) at instream PIT-tag detection systems and subsequent detections of kelt at Lower Snake and Columbia River hydrosystem facilities."}
-df %>% 
-  group_by(mpg, popid) %>% 
-  summarise(`Spawner Observations` = sum(spawner_above),
-            `Kelt at LGD` = sum(kelt_grs),
-            `Kelt below LGD` = sum(kelt_below)) %>%
-  rename(MPG = mpg,
-         `TRT_POPID` = popid) %>%
-  arrange(MPG, TRT_POPID) %>%
+ch_bio_df %>%
+  filter(srr == "32W") %>%
+  filter(gen_sex %in% c("F", "M")) %>%
+  filter(spawner_above == 1 & !is.na(popid) & !str_detect(popid, "/")) %>%
+  group_by(mpg, popid) %>%
+  summarise(
+    release_lgr = sum(release_lgr == 1),
+    spawner_obs = sum(spawner_above == 1),
+    kelt_grs    = sum(kelt_grs == 1),
+    critfc_kelt = sum(str_detect(reconditioned_kelt, "existing_pit_tag|new_lgr_pit_tag")),
+    kelt_blw    = sum(kelt_blw == 1)
+  ) %>%
+  select(
+    MPG = mpg,
+    `TRT POPID` = popid,
+    `Released LGR` = release_lgr,
+    `Spawner Obs` = spawner_obs,
+    `Kelt at LGR` = kelt_grs,
+    `Reconditioned Kelt` = critfc_kelt,
+    `Kelt Below LGR` = kelt_blw
+  ) %>%
   janitor::adorn_totals() %>%
-  kable(label = NA) %>%
-  kable_styling(bootstrap_options = c('striped', 'condensed'))
+  kable(align = "ccccccc",
+        label = NA) %>%
+  kable_styling(full_width = F,
+                position = "center",
+                bootstrap_options = c("striped", "condensed"))
 
+# df %>% 
+#   group_by(mpg, popid) %>% 
+#   summarise(`Spawner Observations` = sum(spawner_above),
+#             `Kelt at LGD` = sum(kelt_grs),
+#             `Kelt below LGD` = sum(kelt_below)) %>%
+#   rename(MPG = mpg,
+#          `TRT_POPID` = popid) %>%
+#   arrange(MPG, TRT_POPID) %>%
+#   janitor::adorn_totals() %>%
+#   kable(label = NA) %>%
+#   kable_styling(bootstrap_options = c('striped', 'condensed'))
 ```
 
-The largest (i.e., greatest fork length) spawners typiclly occur in the Lochsa River (CRLOC-s), SF Salmon River (SFMAI-s), South Fork Clearwater River (CRSFC-s), Lolo Creek (CRLOL-s), Selway River (CRSEL-s), Sesech River (SFSEC-s) and Middle Fork Salmon River ((MFUMA-s and MFBIG-s) populations (Figure \@ref(fig:length-plot)). The proportion of females returning to each population is lowest in the Little Salmon River (SRLSR-s) and upper mainstem Salmon River (SRUMA-s) populations and highest in the Pahsimeroi (SRPAH-s) and Panther Creek (SRPAN-s) populations (Figure \@ref(fig:sex-plot)).   
+The largest (i.e., greatest fork length) spawners typically occur in the Lochsa River (CRLOC-s), SF Salmon River (SFMAI-s), South Fork Clearwater River (CRSFC-s), Lolo Creek (CRLOL-s), Selway River (CRSEL-s), Sesech River (SFSEC-s), and Middle Fork Salmon River ((MFUMA-s and MFBIG-s) populations (Figure \@ref(fig:length-plot)). The proportion of females returning to each population is lowest in the Little Salmon River (SRLSR-s) and upper mainstem Salmon River (SRUMA-s) populations and highest in the Pahsimeroi (SRPAH-s) and Panther Creek (SRPAN-s) populations (Figure \@ref(fig:sex-plot)).   
 
-```{r length-plot, fig.cap = "Length distribution of steelhead sampled at Lower Granite Dam and later detected in spawning areas at instream PIT-tag detection systems."}
-df %>%
+```{r length-plot, fig.cap = "Length distributions of steelhead sampled at Lower Granite Dam and later detected in spawning areas, all spawn years."}
+ch_bio_df %>%
+  filter(srr == "32W") %>%
+  filter(gen_sex %in% c("F", "M")) %>%
+  filter(spawner_above == 1 & !is.na(popid) & !str_detect(popid, "/")) %>%
   group_by(popid) %>%
-  mutate(muFL = mean(fl_mm, na.rm = TRUE)) %>%
+  mutate(muFL = mean(lgd_fl_mm, na.rm = TRUE)) %>%
   ungroup() %>%
-  ggplot(aes(x = fct_reorder(popid, muFL), y = fl_mm)) +
+  ggplot(aes(x = fct_reorder(popid, muFL), y = lgd_fl_mm)) +
   geom_boxplot() +
   coord_flip() +
-  #geom_density() +
-  #geom_density(aes(colour = popid)) +
-  #facet_wrap(~popid) +
-  #stat_ecdf(aes(colour = popid)) +
-  labs(#title = 'Snake River Basin Steelhead Kelt',
-       #subtitle = 'Detection probability of steelhead kelt at Lower Granite Dam after being observed in Snake River basin spawning areas.',
-       y = 'Fork Length',
-       x = '',
-       colour = '') +
+  labs(y = "Fork Length",
+       x = "") +
+  scale_y_continuous(
+    breaks = seq(
+      floor(min(ch_bio_df$lgd_fl_mm, na.rm = TRUE) / 100) * 100,   # round down to nearest 100
+      ceiling(max(ch_bio_df$lgd_fl_mm, na.rm = TRUE) / 100) * 100, # round up to nearest 100
+      by = 100
+    )
+  ) + 
   theme_classic() +
-  theme(axis.title = element_text(size = 12, face = "bold"),  # Larger axis labels
-        axis.text = element_text(size = 8),  # Readable tick labels
+  theme(axis.title = element_text(size = 12, face = "bold"),  
+        axis.text = element_text(size = 8),  
         legend.position = 'bottom',
         legend.title = element_text(size = 12, face = "bold"),
         legend.text = element_text(size = 10),
-        plot.title = element_text(size = 12, face = "bold", hjust = 0)) # Centered title
+        plot.title = element_text(size = 12, face = "bold", hjust = 0))
 ```
 
-```{r sex-plot, fig.cap="Distribution of the proportion of female steelhead sampled at Lower Granite Dam and later detected in spawning areas at instream PIT-tag detection systems."}
-df %>%
-  filter(gen_sex %in% c('F', 'M')) %>%
+```{r sex-plot, fig.cap = "Distributions of the proportion of female steelhead, among spawn years, sampled at Lower Granite Dam and later detected in spawning areas."}
+ch_bio_df %>%
+  filter(srr == "32W") %>%
+  filter(gen_sex %in% c("F", "M")) %>%
+  filter(spawner_above == 1 & !is.na(popid) & !str_detect(popid, "/")) %>%
   group_by(spawn_yr, popid) %>%
   summarise(p = mean(gen_sex == "F"),
             .groups = "drop") %>%
-  ggplot(aes(x = fct_reorder(popid,p), y = p)) +
+  ggplot(aes(x = fct_reorder(popid, p), y = p)) +
   geom_boxplot() +
   coord_flip() +
-  labs(#title = 'Snake River Basin Steelhead Kelt',
-       #subtitle = 'Detection probability of steelhead kelt at Lower Granite Dam after being observed in Snake River basin spawning areas.',
-       x = '',
-       y = 'Female Proportion',
-       colour = '') +
+  labs(x = "",
+       y = "Female Proportion") +
   theme_classic() +
-  theme(axis.title = element_text(size = 12, face = "bold"),  # Larger axis labels
-        axis.text = element_text(size = 8),  # Readable tick labels
+  theme(axis.title = element_text(size = 12, face = "bold"),  
+        axis.text = element_text(size = 8),  
         legend.position = 'bottom',
         legend.title = element_text(size = 12, face = "bold"),
         legend.text = element_text(size = 10),
-        plot.title = element_text(size = 12, face = "bold", hjust = 0)) # Centered title
+        plot.title = element_text(size = 12, face = "bold", hjust = 0))
 ```
 
 # Analysis
+
+## Reconditioned vs. All Kelts Comparison
+
+## Cormack-Jolly-Seber
 
 We estimated post-spawn steelhead survival to LGD using a Cormack-Jolly-Seber (CJS) model [@lebreton_modeling_1992]. The likelihood function for an individual \( i \) in group \( g \) (e.g., a specific spawn year or population) follows:
 
@@ -231,132 +304,141 @@ The best fitting CJS model included terms for spawn year and population for esti
 ```{r mod-results, tab.cap = "Model selection criteria for fitted Cormack-Jolly-Seber models."}
 kelt.cjs.models$model.table %>%
   select(-convergence) %>%
-  kable(col.names = c('Id', 'Model', 'Parameters', 'AIC', 'Delta AIC', 'Weight', '-2Loglik'),
+  kable(col.names = c("ID", "Model", "Parameters", "AIC", "Delta AIC", "Weight", "-2Loglik"),
+        align = "clcccccc",
         label = NA) %>%
-  kable_styling(bootstrap_options = 'striped')
+  kable_styling(full_width = F,
+                position = "center",
+                bootstrap_options = c("striped", "condensed"))
 ```
 
 ```{r best-model-summ}
 summary(best_mod)
 ```
 
-
 ```{r det-plot, fig.cap = "Estimated detection probability from the best fitting model of steelhead kelt at Lower Granite Dam after being observed in Snake River basin spawning areas."}
 best_res %>%
+  # time 2 is lgr
   filter(time == 2) %>%
-  filter(param == 'p') %>%
+  filter(param == "p") %>%
   ggplot(aes(x = fct_rev(year), y = estimate)) +
-  geom_errorbar(aes(ymin = lcl, ymax = ucl)) +
+  geom_errorbar(aes(ymin = lcl, ymax = ucl), width = 0.4) +
   geom_point() +
   coord_flip() +
-  labs(#title = 'Snake River Basin Steelhead Kelt',
-       #subtitle = 'Detection probability of steelhead kelt at Lower Granite Dam after being observed in Snake River basin spawning areas.',
-       x = 'Spawn Year',
-       y = 'Detection') +
+  labs(#title = "Snake River Basin Steelhead Kelt",
+       #subtitle = "Detection probability of steelhead kelt at Lower Granite Dam after being observed in Snake River basin spawning areas.",
+       x = "",
+       y = "P(Detection | Kelt at LGD)") +
   theme_classic() +
-  theme(axis.title = element_text(size = 12, face = "bold"),  # Larger axis labels
-        axis.text = element_text(size = 8),  # Readable tick labels
+  theme(axis.title = element_text(size = 12, face = "bold"),
+        axis.text = element_text(size = 8),
         legend.title = element_text(size = 12, face = "bold"),
         legend.text = element_text(size = 10),
-        plot.title = element_text(size = 12, face = "bold", hjust = 0)) # Centered title
+        plot.title = element_text(size = 12, face = "bold", hjust = 0))
 ```
 
-
-```{r suv-plot, fig.height=9, fig.cap = "Estimated survival probability from the best fitting model of adult steelhead spawners to the kelt life-stage at Lower Granite Dam."}
+```{r surv-plot, fig.height = 15, out.width = '100%', fig.cap = "Estimated survival probability from the best fitting model of adult steelhead spawners to the kelt life-stage at Lower Granite Dam."}
 best_res %>%
   filter(time == 1) %>%
-  filter(param == 'Phi') %>%
-  #filter(estimate < .99) %>%
-  ggplot(aes(x = fct_reorder(pop,estimate), y = estimate)) +
-  geom_errorbar(aes(ymin = lcl, ymax = ucl)) +
-  geom_point() +
+  filter(param == "Phi") %>%
+  ggplot(aes(x = fct_reorder(pop, estimate), y = estimate, color = sex)) +
+  geom_errorbar(aes(ymin = lcl, ymax = ucl),
+                width = 0.5,
+                position = position_dodge(width = 0.5)) +
+  geom_point(             position = position_dodge(width = 0.5)) +
   coord_flip() +
-  facet_wrap(~year, ncol= 5) +
-  labs(#title = 'Snake River Basin Steelhead Kelt',
-       #subtitle = 'Survival of adult steelhead from Snake River basin spawning areas to the kelt life-stage at Lower Granite Dam.',
-       x = '',
-       y = 'Survival') +
+  facet_wrap(~year, ncol = 3) +
+  labs(#title = "Snake River Basin Steelhead Kelt",
+       #subtitle = "Survival of adult steelhead from Snake River basin spawning areas to the kelt life-stage at Lower Granite Dam.",
+       x = "",
+       y = "P(Survival | Observed Spawner)",
+       color = "Sex") +
+  scale_color_manual(values = c("F" = "#E9967A", "M" = "#008080")) + 
   theme_classic() +
-  theme(axis.title = element_text(size = 12, face = "bold"),  # Larger axis labels
-        axis.text = element_text(size = 8),  # Readable tick labels
+  scale_y_continuous(breaks = seq(0, 1, by = 0.25)) +
+  theme(axis.title = element_text(size = 12, face = "bold"),        
+        axis.text = element_text(size = 8),                           
         legend.title = element_text(size = 12, face = "bold"),
         legend.text = element_text(size = 10),
-        plot.title = element_text(size = 12, face = "bold", hjust = 0)) # Centered title
+        plot.title = element_text(size = 12, face = "bold", hjust = 0),
+        legend.position = "bottom")
 ```
 
-```{r avg-sur}
-# pop average - uses an inverse weightd mean to account for precision around each individual estimate
-phi_lgd <- best_res %>%
+```{r avg-surv}
+# pop average - uses an inverse weighted mean to account for precision around each individual estimate
+phi_lgd = best_res %>%
   filter(time == 1) %>%
   filter(param == 'Phi') %>%
-  group_by(pop, time) %>%
+  group_by(pop, sex) %>%
   summarize(
     avg_Phi = sum(estimate / (se^2), na.rm = TRUE) / sum(1 / (se^2), na.rm = TRUE),
     se_Phi = sqrt(1 / sum(1 / (se^2), na.rm = TRUE)),  # Weighted SE
-    lower_CI = pmax(avg_Phi - 1.96 * se_Phi, 0),  # 95% CI lower bound
-    upper_CI = pmin(avg_Phi + 1.96 * se_Phi, 1),  # 95% CI upper bound
+    lower_CI = pmax(avg_Phi - 1.96 * se_Phi, 0),       # 95% CI lower bound
+    upper_CI = pmin(avg_Phi + 1.96 * se_Phi, 1),       # 95% CI upper bound
     .groups = "drop"
   )
 ```
 
-
-
 ```{r pop-only}
 # Extract real parameter estimates (on probability scale)
-real_phi <- predict(best_mod, type="Phi")$Phi
+real_phi = predict(best_mod, type="Phi")$Phi
 
 # Subset to time = 1
-real_phi_time1 <- real_phi[real_phi$time == 1, ]
+real_phi_time1 = real_phi[real_phi$time == 1, ]
 
-# Remove year effect by averaging over years for each population
-avg_pop_survival <- aggregate(real_phi_time1$estimate, by=list(pop=real_phi_time1$pop), FUN=mean)
+# Remove year effect by averaging over years for each population and sex
+avg_survival = aggregate(real_phi_time1$estimate, 
+                         by = list(pop = real_phi_time1$pop, 
+                                   sex = real_phi_time1$sex), 
+                         FUN = mean)
 
 # Compute standard error (SE) for each population
-se_pop_survival <- aggregate(se ~ pop, data=real_phi_time1, FUN=function(x) sqrt(sum(x^2)) / length(x))
+se_survival = aggregate(se ~ pop + sex, data = real_phi_time1, FUN = function(x) sqrt(sum(x^2)) / length(x))
 
 # Merge estimates and SEs
-results <- merge(avg_pop_survival, se_pop_survival, by="pop")
-colnames(results) <- c("pop", "avg_Phi", "se_Phi")
+results = merge(avg_survival, se_survival, by = c("pop", "sex"))
+colnames(results) = c("pop", "sex", "avg_Phi", "se_Phi")
 
 # Compute confidence intervals (95%)
-z_score <- 1.96  # For 95% confidence interval
-results$lower_CI <- pmax(results$avg_Phi - z_score * results$se_Phi, 0)
-results$upper_CI <- pmin(results$avg_Phi + z_score * results$se_Phi, 1)
-results$time <- rep(1, length(results[,1]))
+z_score = 1.96  # for 95% confidence interval
+results$lower_CI = pmax(results$avg_Phi - z_score * results$se_Phi, 0)
+results$upper_CI = pmin(results$avg_Phi + z_score * results$se_Phi, 1)
+results$time = rep(1, length(results[,1]))
 ```
 
-
-```{r avg-sur-tab, tab.cap = "Mean survival conditioned on population and marginalized over spawn year for adult natural-origin steelhead spawners surviving to the kelt life-stage at Lower Granite Dam."}
-#phi_lgd %>%
+```{r avg-surv-tab, tab.cap = "Mean survival conditioned on population and sex and marginalized over spawn years for adult natural-origin steelhead spawners surviving to the kelt life-stage at Lower Granite Dam."}
 results %>%
   select(-time) %>%
-  arrange(avg_Phi) %>%
-  kable(col.names = c('TRT_POPID', 'Mean Survival', 'SE', 'Lower 95% CI', 'Upper 95% CI'),
+  arrange(sex, -avg_Phi) %>%
+  kable(col.names = c("TRT POPID", "Mean Survival", "Sex", "SE", "Lower 95% CI", "Upper 95% CI"),
+        align = "cccccc",
         digits = 3,
         label = NA) %>%
-  kable_styling(bootstrap_options = 'striped')
+  kable_styling(full_width = F,
+                position = "center",
+                bootstrap_options = c("striped", "condensed"))
 ```
 
-```{r avg-sur-plot, fig.cap = "Mean survival conditioned on population and marginalized over spawn year for adult natural-origin steelhead spawners surviving to the kelt life-stage at Lower Granite Dam."}
+```{r avg-surv-plot, fig.cap = "Mean survival conditioned on population and sex and marginalized over spawn year for adult natural-origin steelhead spawners surviving to the kelt life-stage at Lower Granite Dam."}
 results %>%
-  ggplot(aes(x = fct_reorder(pop,avg_Phi), y = avg_Phi)) +
-  geom_errorbar(aes(ymin = lower_CI, ymax = upper_CI)) +
+  ggplot(aes(x = fct_reorder(pop, avg_Phi), y = avg_Phi, color = sex)) +
+  geom_errorbar(aes(ymin = lower_CI, ymax = upper_CI), width = 0.4) +
+  scale_y_continuous(limits = c(0,1), breaks = seq(0, 1, by = .25)) +
   geom_point() +
-  scale_y_continuous(limits = c(0,1)) +
   coord_flip() +
-  labs(#title = 'Snake River Basin Steelhead Kelt',
-       #subtitle = 'Average survival of adult steelhead from Snake River population spawning areas to the kelt life-stage at Lower Granite Dam.',
-       x = '',
-       y = 'Average Survival') +
+  labs(#title = "Snake River Basin Steelhead Kelt",
+       #subtitle = "Average survival of adult steelhead from Snake River population spawning areas to the kelt life-stage at Lower Granite Dam.",
+       x = "",
+       y = "Average Survival",
+       color = "Sex") +
+  scale_color_manual(values = c("F" = "#E9967A", "M" = "#008080")) +
   theme_classic() +
-  theme(axis.title = element_text(size = 12, face = "bold"),  # Larger axis labels
-        axis.text = element_text(size = 12),  # Readable tick labels
+  theme(axis.title = element_text(size = 12, face = "bold"),
+        axis.text = element_text(size = 12),
         legend.title = element_text(size = 12, face = "bold"),
         legend.text = element_text(size = 10),
-        plot.title = element_text(size = 12, face = "bold", hjust = 0)) # Centered title
+        plot.title = element_text(size = 12, face = "bold", hjust = 0))
 ```
-
-
 
 \newpage
 # References

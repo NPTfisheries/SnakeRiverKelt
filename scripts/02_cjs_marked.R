@@ -11,7 +11,7 @@ library(tidyverse)
 library(marked)
 
 # set arguments
-max_sy <- 2024
+max_sy = 2024
 
 # load data from 01_prep_data.R
 load(paste0("./data/input/compiled_lgr_kelt_data_sy", max_sy, ".rda"))
@@ -148,29 +148,30 @@ best_res <- best_mod$results$reals %>%
 # marginize over the year covariate to calcualte an average survival for each pop
 #source('./R/theme_rk.R')
 
+# apparent survival, by year and sex
 fig_s = best_res %>%
   filter(time == 1) %>%
   filter(param == "Phi") %>%
-  ggplot(aes(x = fct_reorder(pop, estimate), y = estimate, fill = sex)) +
-  geom_errorbar(aes(ymin = lcl, ymax = ucl, color = sex),
-                width = 0.4,
-                position = position_dodge(width = 0.4)) +
-  geom_point(aes(color = sex),
-             position = position_dodge(width = 0.4)) +
+  ggplot(aes(x = fct_reorder(pop, estimate), y = estimate, color = sex)) +
+  geom_errorbar(aes(ymin = lcl, ymax = ucl),
+                width = 0.5,
+                position = position_dodge(width = 0.5)) +
+  geom_point(             position = position_dodge(width = 0.5)) +
   coord_flip() +
   facet_wrap(~year, ncol = 5) +
   labs(title = "Snake River Basin Steelhead Kelt",
        subtitle = "Survival of adult steelhead from Snake River basin spawning areas to the kelt life-stage at Lower Granite Dam.",
        x = "",
-       y = "P(Survival | Observed Spawner)") +
-  scale_color_manual(values = c("F" = "firebrick", "M" = "dodgerblue3")) +  # Manually set colors
-  scale_fill_manual(values = c("F" = "firebrick", "M" = "dodgerblue3")) +
+       y = "P(Survival | Observed Spawner)",
+       color = "Sex") +
+  scale_color_manual(values = c("F" = "#E9967A", "M" = "#008080")) + 
   theme_classic() +
-  theme(axis.title = element_text(size = 12, face = "bold"),          # Larger axis labels
-        axis.text = element_text(size = 8),                           # Readable tick labels
+  theme(axis.title = element_text(size = 12, face = "bold"),        
+        axis.text = element_text(size = 8),                           
         legend.title = element_text(size = 12, face = "bold"),
         legend.text = element_text(size = 10),
-        plot.title = element_text(size = 12, face = "bold", hjust = 0)) # Centered title
+        plot.title = element_text(size = 12, face = "bold", hjust = 0),
+        legend.position = "right")
 fig_s  
 
 # fig_s <- best_res %>%
@@ -192,18 +193,18 @@ fig_s
 #         legend.title = element_text(size = 12, face = "bold"),
 #         legend.text = element_text(size = 10),
 #         plot.title = element_text(size = 12, face = "bold", hjust = 0)) # Centered title
-# 
-# fig_s
 
-ggsave('./figures/kelt_lgd_survival.png', fig_s,
+ggsave('./figures/kelt_lgd_survival_sex.png', fig_s,
        width = 11, height = 8.5,
        dpi = 600, units = 'in', device = "png")
 
-fig_d <- best_res %>%
+# annual kelt detection probability at lgr
+fig_d = best_res %>%
+  # time 2 is lgr
   filter(time == 2) %>%
   filter(param == 'p') %>%
   ggplot(aes(x = fct_rev(year), y = estimate)) +
-  geom_errorbar(aes(ymin = lcl, ymax = ucl)) +
+  geom_errorbar(aes(ymin = lcl, ymax = ucl), width = 0.4) +
   geom_point() +
   coord_flip() +
   labs(title = 'Snake River Basin Steelhead Kelt',
@@ -216,47 +217,68 @@ fig_d <- best_res %>%
         legend.title = element_text(size = 12, face = "bold"),
         legend.text = element_text(size = 10),
         plot.title = element_text(size = 12, face = "bold", hjust = 0)) # Centered title
-
 fig_d
 
 ggsave('./figures/kelt_lgd_detection.png', fig_d,
        width = 11, height = 8.5,
        dpi = 600, units = 'in', device = "png")
 
-# pop average - uses an inverse weightd mean to account for precision around each individual estimate
-phi_lgd <- best_res %>%
+# pop average - uses an inverse weighted mean to account for precision around each individual estimate
+phi_lgd = best_res %>%
   filter(time == 1) %>%
   filter(param == 'Phi') %>%
-  group_by(pop, time) %>%
+  group_by(pop, sex) %>%
   summarize(
     avg_Phi = sum(estimate / (se^2), na.rm = TRUE) / sum(1 / (se^2), na.rm = TRUE),
     se_Phi = sqrt(1 / sum(1 / (se^2), na.rm = TRUE)),  # Weighted SE
-    lower_CI = pmax(avg_Phi - 1.96 * se_Phi, 0),  # 95% CI lower bound
-    upper_CI = pmin(avg_Phi + 1.96 * se_Phi, 1),  # 95% CI upper bound
+    lower_CI = pmax(avg_Phi - 1.96 * se_Phi, 0),       # 95% CI lower bound
+    upper_CI = pmin(avg_Phi + 1.96 * se_Phi, 1),       # 95% CI upper bound
     .groups = "drop"
   )
 
-fig_avg_s <- phi_lgd %>%
-  ggplot(aes(x = fct_reorder(pop,avg_Phi), y = avg_Phi)) +
-  geom_errorbar(aes(ymin = lower_CI, ymax = upper_CI)) +
+# average population survival, by sex
+fig_avg_s = phi_lgd %>%
+  ggplot(aes(x = fct_reorder(pop, avg_Phi), y = avg_Phi, color = sex)) +
+  geom_errorbar(aes(ymin = lower_CI, ymax = upper_CI), width = 0.4) +
   scale_y_continuous(limits = c(0,1), breaks = seq(0, 1, by = .25)) +
   geom_point() +
   coord_flip() +
   labs(title = 'Snake River Basin Steelhead Kelt',
        subtitle = 'Average survival of adult steelhead from Snake River population spawning areas to the kelt life-stage at Lower Granite Dam.',
        x = '',
-       y = 'Average Survival') +
+       y = 'Average Survival',
+       color = "Sex") +
+  scale_color_manual(values = c("F" = "#E9967A", "M" = "#008080")) +
   theme_classic() +
   theme(axis.title = element_text(size = 12, face = "bold"),  # Larger axis labels
         axis.text = element_text(size = 12),  # Readable tick labels
         legend.title = element_text(size = 12, face = "bold"),
         legend.text = element_text(size = 10),
-        plot.title = element_text(size = 12, face = "bold", hjust = 0)) # Centered title
-
+        plot.title = element_text(size = 12, face = "bold", hjust = 0))
 fig_avg_s
+  
+# fig_avg_s <- phi_lgd %>%
+#   ggplot(aes(x = fct_reorder(pop,avg_Phi), y = avg_Phi)) +
+#   geom_errorbar(aes(ymin = lower_CI, ymax = upper_CI)) +
+#   scale_y_continuous(limits = c(0,1), breaks = seq(0, 1, by = .25)) +
+#   geom_point() +
+#   coord_flip() +
+#   labs(title = 'Snake River Basin Steelhead Kelt',
+#        subtitle = 'Average survival of adult steelhead from Snake River population spawning areas to the kelt life-stage at Lower Granite Dam.',
+#        x = '',
+#        y = 'Average Survival') +
+#   theme_classic() +
+#   theme(axis.title = element_text(size = 12, face = "bold"),  # Larger axis labels
+#         axis.text = element_text(size = 12),  # Readable tick labels
+#         legend.title = element_text(size = 12, face = "bold"),
+#         legend.text = element_text(size = 10),
+#         plot.title = element_text(size = 12, face = "bold", hjust = 0)) # Centered title
 
-ggsave('./figures/kelt_lgd_avg_survival.png', fig_avg_s,
+ggsave('./figures/kelt_lgd_avg_survival_sex.png', fig_avg_s,
        width = 11, height = 8.5,
        dpi = 600, units = 'in', device = "png")
 
-save(df, mod_dat, kelt.cjs.models, best_mod, best_res, phi_lgd,  file = paste0('./data/output/mod_dat_sy', max_sy,'.Rda'))
+# save important results
+save(mod_df, mod_dat, kelt.cjs.models, best_mod, best_res, phi_lgd,  file = paste0('./data/output/mod_dat_sy', max_sy, '_', Sys.Date(), '.rda'))
+
+### END SCRIPT

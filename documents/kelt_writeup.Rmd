@@ -84,7 +84,7 @@ options(knitr.kable.NA = '--')
 ```{r load-pkgs}
 library(tidyverse)
 library(marked)
-source('../R/theme_rk.R')
+#source('../R/theme_rk.R')
 ```
 
 ```{r cite-pkgs}
@@ -94,7 +94,8 @@ knitr::write_bib(.packages(), "../documents/kelt_summary_package.bib")
 
 ```{r load-data}
 sy = 2024
-load(paste0('../data/output/mod_dat_sy', sy,'.Rda'))
+load(paste0('../data/input/compiled_lgr_kelt_data_sy', sy, '.rda'))
+load(paste0('../data/output/mod_dat_sy', sy, '_2025-04-03', '.rda'))
 ```
 
 # Data Source

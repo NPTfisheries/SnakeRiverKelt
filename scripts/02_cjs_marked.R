@@ -88,6 +88,7 @@ fit.kelt.cjs.models <- function(){
   
   Phi.year.mpg.sex <- list(formula = ~ year + mpg + sex + time) # survival varies by year, mpg, and sex
   Phi.year.pop.sex <- list(formula = ~ year + pop + sex + time) # survival varies by year, pop, and sex
+  Phi.year.pop.sex.int <- list(formula = ~ year + pop * sex + time)
   #Phi.mpg.pop.sex  <- list(formula = ~ mpg + pop + sex + time)  # survival varies by mpg, pop, and sex (consistent across year)
   
   # Interactions
@@ -137,7 +138,7 @@ kelt.cjs.models <- fit.kelt.cjs.models()
 
 kelt.cjs.models
 #best_mod <- kelt.cjs.models[[24]] #$Phi.pop.p.pop.time
-best_mod = kelt.cjs.models[[28]] # Phi.year.pop.sex
+best_mod = kelt.cjs.models[[30]] # Phi.year.pop.sex
 
 best_res <- best_mod$results$reals %>%
   bind_rows(.id = 'param')

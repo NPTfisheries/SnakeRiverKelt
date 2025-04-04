@@ -96,7 +96,7 @@ knitr::write_bib(.packages(), "../documents/kelt_summary_package.bib")
 ```{r load-data}
 sy = 2024
 load(paste0('../data/input/compiled_lgr_kelt_data_sy', sy, '.rda'))  # from 01_prep_data.R
-load(paste0('../data/output/mod_dat_sy', sy, '_2025-04-03', '.rda')) # from 02_cjs_marked.R
+load(paste0('../data/output/mod_dat_sy', sy, '_2025-04-04', '.rda')) # from 02_cjs_marked.R
 ch_bio_df %<>%
   mutate(popid = recode(popid, "CRLMA-s/CRSFC-s" = "CRSFC-s")) %>%
   rowwise() %>%
@@ -489,7 +489,7 @@ results$time = rep(1, length(results[,1]))
 results %>%
   select(-time) %>%
   arrange(sex, -avg_Phi) %>%
-  kable(col.names = c("TRT POPID", "Mean Survival", "Sex", "SE", "Lower 95% CI", "Upper 95% CI"),
+  kable(col.names = c("TRT POPID", "Sex", "Mean Survival", "SE", "Lower 95% CI", "Upper 95% CI"),
         align = "cccccc",
         digits = 3,
         label = NA) %>%

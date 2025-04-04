@@ -205,6 +205,7 @@ ch_bio_df = ch_df %>%
               distinct(spawn_yr, tag_code, .keep_all = TRUE) %>%
               select(spawn_yr,
                      tag_code,
+                     collection_date,
                      srr,
                      lgd_marks_all,
                      lgd_mark_ad,

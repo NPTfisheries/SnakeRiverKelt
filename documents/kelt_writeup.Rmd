@@ -147,7 +147,8 @@ ch_bio_df %>%
   ) %>%
   janitor::adorn_totals() %>%
   kable(align = "cccccc",
-        label = NA) %>%
+        label = NA,
+        format.args = list(big.mark = ",")) %>%
   kable_styling(full_width = F,
                 position = "center",
                 bootstrap_options = c("striped", "condensed"))
@@ -188,7 +189,8 @@ ch_bio_df %>%
   ) %>%
   janitor::adorn_totals() %>%
   kable(align = "ccccccc",
-        label = NA) %>%
+        label = NA,
+        format.args = list(big.mark = ",")) %>%
   kable_styling(full_width = F,
                 position = "center",
                 bootstrap_options = c("striped", "condensed"))
@@ -263,9 +265,86 @@ ch_bio_df %>%
 
 ## Reconditioned vs. All Kelts Comparison
 
+We compared kelts collected by the reconditioning program in spawn year 2016 - 2021 to all kelts observed at LGR and/or at downstream hydropower systems to evaluate whether reconditioned kelts are representative of all kelts at-large (i.e., in-river migrating downstream past LGR). Figure \@ref(fig:kelt-compare) provides comparisons of size, run-timing (i.e., collection date at LGR during upstream migration), and proportions of genetic stocks and kelts previously observed at upstream spawning locations. 
+
+```{r kelt-compare, fig.height = 8, out.width = '100%', fig.cap = "Comparison of all kelts observed at LGR or at downstream hydropower facilities (In River) to kelts collected by the reconditioning program (Reconditioned), spawn year 2016 - 2021, from those within the valid tag list. Comparisons include length, collection date at Lower Granite Dam from July 1, genetic stock proportions, and proportion of individuals observed at spawning sites."}
+# trim down to 32W all female kelts (observed lgr or below) during reconditioning program
+kelt_df = ch_bio_df %>%
+  filter(srr == "32W") %>%
+  filter(gen_sex == "F") %>%            # focus just on females
+  filter(spawn_yr %in% 2016:2021) %>%   # exclude years outside kelt reconditioning program
+  # keep only reconditioned kelts or fish observed as kelts at lgr or downstream
+  filter(if_any(kelt_grs:kelt_bon, ~ .x == 1) | reconditioned_kelt %in% c("existing_pit_tag|new_lgr_pit_tag")) %>%
+  mutate(kelt_type = if_else(reconditioned_kelt %in% c("existing_pit_tag", "new_lgr_pit_tag"), "Reconditioned", "In River"),
+         run_day = as.numeric(difftime(collection_date, make_date(spawn_yr - 1, 7, 1), units = "days"))) %>%
+  # trim down to field of interest for easier plotting
+  select(spawn_yr,
+         tag_code,
+         kelt_type,
+         collection_date,
+         run_day,
+         spawner_above,
+         lgd_fl_mm,
+         sw_age,
+         gen_stock,
+         popid)
+
+# proportion of observed spawners
+kelt_spawn_p = kelt_df %>%
+  group_by(spawn_yr, kelt_type) %>%
+  summarize(p_spawn = sum(spawner_above == 1) / n(),
+            .groups = "drop") %>%
+  ggplot(aes(x = kelt_type, y = p_spawn, color = as.factor(spawn_yr))) +
+  geom_point(size = 3) +
+  scale_y_continuous(limits = c(0, 1), breaks = seq(0, 1, by = 0.1)) +
+  labs(x = "",
+       y = "P(Observed Spawners)",
+       color = "Spawn Year") +
+  theme_classic() +
+  theme(axis.text.x = element_text(size = 10, color = "black"))
+
+# run-timing
+kelt_time_p = kelt_df %>%
+  ggplot(aes(x = kelt_type, y = run_day)) +
+  geom_boxplot() +
+  coord_flip() +
+  labs(x = "",
+       y = "Day from July 1") +
+  theme_classic() +
+  theme(axis.text.y = element_text(size = 10, color = "black"))
+
+# size
+kelt_size_p = kelt_df %>%
+  ggplot(aes(x = kelt_type, y = lgd_fl_mm)) +
+  geom_boxplot() +
+  labs(x = "",
+       y = "Fork Length (mm)") +
+  theme_classic() +
+  theme(axis.text.x = element_text(size = 10, color = "black"))
+
+# gen_stock or popid
+kelt_stock_p = kelt_df %>%
+  filter(!gen_stock == "NG") %>%
+  ggplot(aes(x = kelt_type, fill = gen_stock)) +
+  geom_bar(position = "fill", color = "black", linewidth = 0.1) +
+  scale_fill_brewer(palette = "Set3") +
+  labs(x = "",
+       y = "P(Genetic Stock)",
+       fill = "GenStock") +
+  scale_y_continuous(labels = scales::percent_format()) +
+  theme_classic() +
+  theme(axis.text.x = element_text(size = 10, color = "black"))
+
+library(gridExtra)
+grid.arrange(kelt_size_p, kelt_time_p,
+             kelt_stock_p, kelt_spawn_p,
+             ncol = 2, nrow = 2)
+  
+```
+
 ## Cormack-Jolly-Seber
 
-We estimated post-spawn steelhead survival to LGD using a Cormack-Jolly-Seber (CJS) model [@lebreton_modeling_1992]. The likelihood function for an individual \( i \) in group \( g \) (e.g., a specific spawn year or population) follows:
+We estimated post-spawn steelhead apparent survival (i.e., surviving and migrating) to LGR using a Cormack-Jolly-Seber (CJS) model [@lebreton_modeling_1992]. The likelihood function for an individual \( i \) in group \( g \) (e.g., a specific spawn year, population, and/or other covariate) follows:
 
 \[
 L = \prod_{i=1}^{n} \prod_{t=1}^{T} P(y_{it} | \phi^g, p^g)
@@ -297,7 +376,7 @@ All models were fit using the `marked::cmr()` [@laake_marked_2013] function in R
 
 # Results
 
-The best fitting CJS model included terms for spawn year and population for estimating survival and only spawn year for estimating detection probabilities (Table \@ref(tab:mod-results)). Figures \@ref(fig:det-plot) and \@ref(fig:surv-plot) show the estimated detection and survival probabilities for the best fitting model. Table \@ref(tab:avg-surv-tab) and Figure \@ref(fig:avg-surv-plot) provide average survival estimates conditioned on population and marginalized over spawn years [@casella_statistical_2021].
+The best fitting CJS model included terms for spawn year, population, and sex for estimating apparent survival and only spawn year for estimating detection probabilities (Table \@ref(tab:mod-results)). Figures \@ref(fig:det-plot) and \@ref(fig:surv-plot) show the estimate detection and survival probabilities for the best fitting model. Table \@ref(tab:avg-surv-tab) and Figure \@ref(fig:avg-surv-plot) provide average survival estimates conditioned on population and sex and marginalized over spawn years [@casella_statistical_2021].
 
 <!-- the inverse variance weighted average [@hartung_statistical_2008] of survivals across spawn years for each population.  -->
 

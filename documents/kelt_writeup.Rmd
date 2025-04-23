@@ -107,19 +107,19 @@ ch_bio_df %<>%
 
 # Data Sources
 
-We evaluated kelting rates of natural-origin adult steelhead observed spawning in Snake River tributaries upstream of Lower Granite Dam (LGR) moving back downstream past LGR, simultaneously estimating the kelt detection probability of LGR. The dataset used in this analysis comprises of observations of PIT-tagged natural-origin adult steelhead (newly or previously tagged) trapped at the LGR adult ladder during spawn years 2010 and subsequently detected near the spawning grounds at instream PIT-tag detection systems (IPTDS) or mark-recapture-recovery (MRR) sites. Post-spawn, PIT-tagged adults can additionally be "re-detected" moving downstream past LGR, at any downriver dam, or in the Columbia River estuary.
+We evaluated kelting rates of natural-origin adult steelhead observed spawning in Snake River tributaries upstream of Lower Granite Dam (LGR) moving back downstream past LGR, simultaneously estimating the kelt detection probability of LGR. The dataset used in this analysis comprises of observations of PIT-tagged natural-origin adult steelhead (newly or previously tagged) trapped at the LGR adult ladder, beginning with spawn year 2010, and then subsequently detected near the spawning grounds at instream PIT-tag detection systems (IPTDS) or mark-recapture-recovery (MRR) sites. Post-spawn, PIT-tagged adults can additionally be "re-detected" moving downstream past LGR, at any downriver dam, or in the Columbia River estuary.
 
 We generate the dataset by first compiling a list of PIT-tag observations for adult steelhead with *valid* PIT-tag codes collected at the LGR adult trap between July 1 and June 30 comprising each spawn year [@Baum2023; @Ogden2020]. All phenotypic natural-origin fish (i.e., present adipose fin and absence of a coded-wire tag) are included as part of the *valid* tag list. Phenotypic natural-orgin fish of hatchery-origin can later be identified using parentage-based tagging [@Steele2013; @Steele2019; @Baum2023]. <!-- and are excluded from the *valid* tag list. -->
 
 A PIT-tag code was considered *valid* if the adult steelhead was trapped while ascending the LGR fish ladder during a systematic subsampling period, had a fork length (FL) greater than 30 cm, and was not missing data for any of the following fields: date of collection, species, FL, origin (hatchery or wild), or adipose fin status (ad-clipped or ad-intact) within the LGR trapping database [@Baum2023]. Once the valid tag list was developed, we retrieved all PIT-tag interrogations for each code using the complete tag history query from [PTAGIS](https://www.ptagis.org). Observations were then processed using the statistical programming language R [@R-base] and the [PITcleanr](https://kevinsee.github.io/PITcleanr/) package [@See2024]. PIT-tag observations and data processing scripts are maintained within the [SnakeRiverFishStatus](https://github.com/NPTfisheries/SnakeRiverFishStatus) GitHub repository.
 
-The complete tag histories were initially processed using the `PITcleanr::compress()` function [@See2024]. This function, along with a supplied configuration file, collapsed multipe PIT-tag interrogations at the same location and within a similar time frame into a single record, retaining only essential information: the PIT-tag code, observation location (i.e., node), and the minimum and maximum timestamps of observations at that location (i.e., IPTDS, MRR site, or dam). For instance, all PIT-tag detection sites at Bonneville Dam (e.g., BCC, B2J, etc.) were merged into a single node, while LGR sites were categorized into a downstream migration node (GRJ, GRS) and an upstream migration node (GRA, LGRLDR, LGR). Similar to Bonneville Dam, all detection sites within a dam between LGR and Bonneville were merged into their own node. All detections of LGR remained distinct to facilitate assignment of detections to specific spawning locations and identify movement direction. Finally, the dataset was truncated to include only observations occuring after an upstream-migrating steelhead was first detected at the LGR adult trap, excluding all juvenile and pre-return adult observations.
+The complete tag histories were initially processed using the `PITcleanr::compress()` function [@See2024]. This function, along with a supplied configuration file, collapsed multiple PIT-tag interrogations at the same location and within a similar time frame into a single record, retaining only essential information: the PIT-tag code, observation location (i.e., node), and the minimum and maximum timestamps of observations at that location (i.e., IPTDS, MRR site, or dam). For instance, all PIT-tag detection sites at Bonneville Dam (e.g., BCC, B2J, etc.) were merged into a single node, while LGR sites were categorized into a downstream migration node (GRJ, GRS) and an upstream migration node (GRA, LGRLDR, LGR). Similar to Bonneville Dam, all detection sites within a dam between LGR and Bonneville were merged into their own node. All detections upstream of LGR remained distinct to facilitate assignment of detections to specific spawning locations and identify movement direction. Finally, the dataset was truncated to include only observations occuring after an upstream-migrating steelhead was first detected at the LGR adult trap, excluding all juvenile and pre-return adult observations.
 
-The resulting dataset consists of PIT-tag observations from a random sample of adult steelhead migrating past LGR and all subsequent detections of fish migrating during three distinct life stages: upstream towards spawning areas (spawners), downstream post-spawning (kelt), and returning upstream again through the hydrosystem (repeat spawners). A simple rule set ws then applied to classify observations to locations and each life stage using functions maintained in the [SnakeRiverKelt](https://github.com/NPTfisheries/SnakeRiverKelt) GitHub repository. The kelt stage was assigned to observations occurring at least five days after the last upstream spawner movement, observations indicating a downstram movement, and any detections at the lower Snake and Columbia river hydrosystems after April 20. The repeat spawner stage was assigned to all observations following the first upstream migration in any spawn year beyond the fish's initial spawn year.
+The resulting dataset consists of PIT-tag observations from a random sample of adult steelhead migrating past LGR and all subsequent detections of fish migrating during three distinct life stages: upstream towards spawning areas (spawners), downstream post-spawning (kelt), and returning upstream again through the hydrosystem (repeat spawners). A simple rule set was then applied to classify observations to locations and each life stage using functions maintained in the [SnakeRiverKelt](https://github.com/NPTfisheries/SnakeRiverKelt) GitHub repository. The kelt stage was assigned to observations occurring at least five days after the last upstream spawner movement, observations indicating a downstram movement, and any detections at the lower Snake and Columbia river hydrosystems after April 20. The repeat spawner stage was assigned to all observations following the first upstream migration in any spawn year beyond the fish's initial spawn year.
 
 We additionally received a list of PIT-tagged adult steelhead kelts collected from the LGR juvenile bypass for the kelt reconditioning program starting in 2016 to 2021. Because these kelts are removed from the river for reconditioning, they were filtered from our evaluation of kelting and detection rates at LGR. The list consists of adults newly tagged at LGR and part of the *valid* list and previously tagged, which may or may not be within the *valid* tag list.
 
-Finally, we refined our dataset to include only fish with a final designated species-run-rear (SRR) code of "32W" (i.e., steelhead, summer-run, wild). Hatchery-identified adults from the *valid* tag list were excluded, as they are not retained for natural-origin adult escapement analyses int he standard [SnakeRiverFishStatus](https://github.com/NPTfisheries/SnakeRiverFishStatus) workflow, and the kelt reconditioning program focuses solely on natural-origin adults. Additionally, we removed a small number of fish with undetermined sex.
+Finally, we refined our dataset to include only fish with a final designated species-run-rear (SRR) code of "32W" (i.e., steelhead, summer-run, wild). Hatchery-identified adults from the *valid* tag list were excluded, as they are not retained for natural-origin adult escapement analyses in the standard [SnakeRiverFishStatus](https://github.com/NPTfisheries/SnakeRiverFishStatus) workflow, and the kelt reconditioning program focuses solely on natural-origin adults. Additionally, we removed a small number of fish with undetermined sex.
 
 Kelts removed from the river for the reconditioning program were not included in our analysis of kelting and detection probability rates at LGR; however, their data were retained for comparison with all spawners observed as kelts at LGR and downstream.
 
@@ -149,7 +149,7 @@ ch_bio_df %>%
   kable(align = "cccccc",
         label = NA,
         format.args = list(big.mark = ",")) %>%
-  kable_styling(full_width = F,
+  kable_styling(full_width = TRUE,
                 position = "center",
                 bootstrap_options = c("striped", "condensed"))
 
@@ -191,7 +191,7 @@ ch_bio_df %>%
   kable(align = "ccccccc",
         label = NA,
         format.args = list(big.mark = ",")) %>%
-  kable_styling(full_width = F,
+  kable_styling(full_width = TRUE,
                 position = "center",
                 bootstrap_options = c("striped", "condensed"))
 
@@ -342,7 +342,7 @@ grid.arrange(kelt_size_p, kelt_time_p,
   
 ```
 
-## Cormack-Jolly-Seber
+## Kelt Survival and Detection Modeling
 
 We estimated post-spawn steelhead apparent survival (i.e., surviving and migrating) to LGR using a Cormack-Jolly-Seber (CJS) model [@lebreton_modeling_1992]. The likelihood function for an individual \( i \) in group \( g \) (e.g., a specific spawn year, population, and/or other covariate) follows:
 
@@ -352,19 +352,19 @@ L = \prod_{i=1}^{n} \prod_{t=1}^{T} P(y_{it} | \phi^g, p^g)
 
 where, \( y_{it} = 1 \) if individual \( i \) is observed at time \( t \), and \( y_{it} = 0 \) if the individual was not observed. \( \phi_t^g \) is the probability of survival from \( t \) to \( t+1 \) for group \( g \), and \( p_t^g \) is the probability of detection at \( t \), given the individual is alive.
 
-Since spawn year and population may explain variation in survival and detection probabilities, we incorporated these as fixed effects in the model using a logit-link and the general structure:
+Since spawn year, population, and sex may explain variation in survival and detection probabilities, we incorporated these as fixed effects using a logit-link with the general model structure as (excluding possible interactions):
 
 \[
-\text{logit}(\phi_t) = \beta_0 + \beta_1 (\text{spawn year}) + \beta_2 (\text{population}) + \beta_3 (\text{spawn year} \times \text{population})
+\text{logit}(\phi_t) = \beta_0 + \beta_1 (\text{spawn year}) + \beta_2 (\text{population}) + \beta_3 (\text{sex})
 \]
 
 \[
-\text{logit}(p_t) = \alpha_0 + \alpha_1 (\text{spawn year}) + \alpha_2 (\text{population}) + \alpha_3 (\text{spawn year} \times \text{population})
+\text{logit}(p_t) = \alpha_0 + \alpha_1 (\text{spawn year}) + \alpha_2 (\text{population}) + \alpha_3 (\text{sex})
 \]
 
-where, \( \beta_0, \beta_1, \beta_2, \beta_3 \) are coefficients for survival (\(\phi\)) and \( \alpha_0, \alpha_1, \alpha_2, \alpha_3 \) are coefficients for detection (\( p \)). The interaction term (\(\beta_3, \alpha_3\)) tests whether survival and detection probabilities vary differently by spawn year and population combinations.
+where, \( \beta_0, \beta_1, \beta_2, \beta_3 \) are coefficients for survival (\(\phi\)) and \( \alpha_0, \alpha_1, \alpha_2, \alpha_3 \) are coefficients for detection (\( p \)). Biologically meaningful interaction terms were also included in candidate models; for example, spawn year X population and population x sex to examine if survival and detection probabilities vary differently across the two interaction terms.
 
-We fit multiple models with different variations of spawn year and population fixed effects, and then determined the best-fitting model after comparing candidate models with Akaike’s Information Criterion (AIC) [@akaike_new_1974]. AIC is calculated as:
+We fit multiple candidate models with different variations of fixed effects and interactions, and then determined the best-fitting model using Akaike’s Information Criterion (AIC) [@akaike_new_1974] calculated as:
 
 \[
 AIC = -2 \log L + 2K
@@ -376,7 +376,7 @@ All models were fit using the `marked::cmr()` [@laake_marked_2013] function in R
 
 # Results
 
-The best fitting CJS model included terms for spawn year, population, and sex for estimating apparent survival and only spawn year for estimating detection probabilities (Table \@ref(tab:mod-results)). Figures \@ref(fig:det-plot) and \@ref(fig:surv-plot) show the estimate detection and survival probabilities for the best fitting model. Table \@ref(tab:avg-surv-tab) and Figure \@ref(fig:avg-surv-plot) provide average survival estimates conditioned on population and sex and marginalized over spawn years [@casella_statistical_2021].
+The best fitting candidate model included terms for spawn year, population, and sex for estimating apparent survival and only spawn year for estimating detection probabilities (Table \@ref(tab:mod-results)). Table \@ref(tab:det-tab) and Figures \@ref(fig:det-plot) and \@ref(fig:surv-plot) show the estimate detection and survival probabilities for the best fitting model. Figure \@ref(fig:avg-surv-plot) and Table \@ref(tab:avg-surv-tab) provide average survival estimates conditioned on population and sex and marginalized over spawn years [@agresti_categorical_2003].
 
 <!-- the inverse variance weighted average [@hartung_statistical_2008] of survivals across spawn years for each population.  -->
 
@@ -386,14 +386,30 @@ kelt.cjs.models$model.table %>%
   kable(col.names = c("ID", "Model", "Parameters", "AIC", "Delta AIC", "Weight", "-2Loglik"),
         align = "clcccccc",
         label = NA) %>%
-  kable_styling(full_width = F,
+  kable_styling(full_width = TRUE,
                 position = "center",
                 bootstrap_options = c("striped", "condensed"))
 ```
 
-```{r best-model-summ}
+```{r best-model-summ, eval = FALSE}
 summary(best_mod)
 ```
+
+```{r det-tab, tab.cap="Estimated detection probability from the best fitting model of steelhead kelt at Lower Granite Dam after being observed in Snake River basin spawning areas."}
+best_res %>%
+  # time 2 is lgr
+  filter(time == 2) %>%
+  filter(param == "p") %>%
+  select(year, estimate, se, lcl, ucl) %>%
+  kable(col.names = c('Spawn Year', 'Estimate', 'SE', 'Lower 95% CI', 'Upper 95% CI'),
+        align = 'lcccc',
+        digits = 2,
+        label = NA) %>%
+  kable_styling(full_width = TRUE,
+                position = "center",
+                bootstrap_options = c("striped", "condensed"))
+```
+
 
 ```{r det-plot, fig.cap = "Estimated detection probability from the best fitting model of steelhead kelt at Lower Granite Dam after being observed in Snake River basin spawning areas."}
 best_res %>%
@@ -415,6 +431,7 @@ best_res %>%
         legend.text = element_text(size = 10),
         plot.title = element_text(size = 12, face = "bold", hjust = 0))
 ```
+
 
 ```{r surv-plot, fig.height = 15, out.width = '100%', fig.cap = "Estimated survival probability from the best fitting model of adult steelhead spawners to the kelt life-stage at Lower Granite Dam."}
 best_res %>%
@@ -485,18 +502,6 @@ results$upper_CI = pmin(results$avg_Phi + z_score * results$se_Phi, 1)
 results$time = rep(1, length(results[,1]))
 ```
 
-```{r avg-surv-tab, tab.cap = "Mean survival conditioned on population and sex and marginalized over spawn years for adult natural-origin steelhead spawners surviving to the kelt life-stage at Lower Granite Dam."}
-results %>%
-  select(-time) %>%
-  arrange(sex, -avg_Phi) %>%
-  kable(col.names = c("TRT POPID", "Sex", "Mean Survival", "SE", "Lower 95% CI", "Upper 95% CI"),
-        align = "cccccc",
-        digits = 3,
-        label = NA) %>%
-  kable_styling(full_width = F,
-                position = "center",
-                bootstrap_options = c("striped", "condensed"))
-```
 
 ```{r avg-surv-plot, fig.cap = "Mean survival conditioned on population and sex and marginalized over spawn year for adult natural-origin steelhead spawners surviving to the kelt life-stage at Lower Granite Dam."}
 results %>%
@@ -518,6 +523,22 @@ results %>%
         legend.text = element_text(size = 10),
         plot.title = element_text(size = 12, face = "bold", hjust = 0))
 ```
+
+
+```{r avg-surv-tab, tab.cap = "Mean survival conditioned on population and sex and marginalized over spawn years for adult natural-origin steelhead spawners surviving to the kelt life-stage at Lower Granite Dam."}
+results %>%
+  select(-time) %>%
+  arrange(sex, -avg_Phi) %>%
+  kable(col.names = c("TRT POPID", "Sex", "Mean Survival", "SE", "Lower 95% CI", "Upper 95% CI"),
+        align = "cccccc",
+        digits = 3,
+        label = NA) %>%
+  kable_styling(full_width = TRUE,
+                position = "center",
+                bootstrap_options = c("striped", "condensed"))
+```
+
+
 
 \newpage
 # References

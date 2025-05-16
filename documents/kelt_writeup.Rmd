@@ -123,7 +123,7 @@ Finally, we refined our dataset to include only fish with a final designated spe
 
 Kelts removed from the river for the reconditioning program were not included in our analysis of kelting and detection probability rates at LGR; however, their data were retained for comparison with all spawners observed as kelts at LGR and downstream.
 
-In the `r n_distinct(ch_bio_df$spawn_yr)` years of observation data, we have observed `r ch_bio_df %>% filter(spawner_above == 1 & !is.na(popid) & !str_detect(popid, "/")) %>% nrow() %>% prettyNum(big.mark = ",")` PIT-tagged adult steelhead at Snake River spawning locations, after refining our dataset. Tables \@ref(tab:data-year) and \@ref(tab:data-pop) show the number of these unique PIT-tagged spawners for each spawn year and within each Snake River population upstream of LGR. Additionally, the tables include the number of those spawners observed as kelt at LGR and downstream (i.e., below) of LGR.
+In the `r n_distinct(ch_bio_df$spawn_yr)` years of observation data, we have observed `r ch_bio_df %>% filter(spawner_above == 1 & srr == "32W" & gen_sex %in% c("F", "M") & !is.na(popid) & !str_detect(popid, "/")) %>% nrow() %>% prettyNum(big.mark = ",")` PIT-tagged adult steelhead at Snake River spawning locations, after refining our dataset. Tables \@ref(tab:data-year) and \@ref(tab:data-pop) show the number of these unique PIT-tagged spawners for each spawn year and within each Snake River population upstream of LGR. Additionally, the tables include the number of those spawners observed as kelt at LGR and downstream (i.e., below) of LGR.
 
 ```{r data-year, tab.cap = "Natural-origin PIT-tagged steelhead released from Lower Granite Dam (LGR), observed upstream as spawners, and subsequent detections of kelt at Lower Snake and Columbia River hydrosystem facilities. Reconditioned kelt indicates spawners collected for reconditioning (i.e., removed from the river) and subsequently removed from kelting rate and detection analyses."}
 ch_bio_df %>%
@@ -181,7 +181,7 @@ ch_bio_df %>%
   select(
     MPG = mpg,
     `TRT POPID` = popid,
-    `Released LGR` = release_lgr,
+    #`Released LGR` = release_lgr,
     `Spawner Obs` = spawner_obs,
     `Kelt at LGR` = kelt_grs,
     `Reconditioned Kelt` = critfc_kelt,
@@ -395,7 +395,7 @@ kelt.cjs.models$model.table %>%
 summary(best_mod)
 ```
 
-```{r det-tab, tab.cap="Estimated detection probability from the best fitting model of steelhead kelt at Lower Granite Dam after being observed in Snake River basin spawning areas."}
+```{r det-tab, tab.cap="Estimated detection probability, with 95% confidence levels, from the best fitting model of steelhead kelt at Lower Granite Dam after being observed in Snake River basin spawning areas."}
 best_res %>%
   # time 2 is lgr
   filter(time == 2) %>%
@@ -408,8 +408,8 @@ best_res %>%
   kable_styling(full_width = TRUE,
                 position = "center",
                 bootstrap_options = c("striped", "condensed"))
-```
 
+```
 
 ```{r det-plot, fig.cap = "Estimated detection probability from the best fitting model of steelhead kelt at Lower Granite Dam after being observed in Snake River basin spawning areas."}
 best_res %>%

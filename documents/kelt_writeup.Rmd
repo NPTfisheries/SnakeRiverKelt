@@ -524,7 +524,6 @@ results %>%
         plot.title = element_text(size = 12, face = "bold", hjust = 0))
 ```
 
-
 ```{r avg-surv-tab, tab.cap = "Mean survival conditioned on population and sex and marginalized over spawn years for adult natural-origin steelhead spawners surviving to the kelt life-stage at Lower Granite Dam."}
 results %>%
   select(-time) %>%
@@ -538,7 +537,55 @@ results %>%
                 bootstrap_options = c("striped", "condensed"))
 ```
 
+```{r avg-surv-yr, tab.cap = "Mean survival conditioned on year and sex and marginalized over populations for adult natural-origin steelhead spawners surviving to the kelt life-stage at Lower Granite Dam."}
+# remove pop effect by averaging over pop for each year and sex
+avg_surv_yr = aggregate(real_phi_time1$estimate,
+                        by = list(year = real_phi_time1$year,
+                                  sex = real_phi_time1$sex),
+                        FUN = mean)
 
+# compute SE for each year
+se_surv_yr = aggregate(se ~ year + sex, data = real_phi_time1, FUN = function(x) sqrt(sum(x^2)) / length(x))
+
+# merge estimates and SEs
+results_yr = merge(avg_surv_yr, se_surv_yr, by = c("year", "sex"))
+colnames(results_yr) = c("year", "sex", "avg_Phi", "se_Phi")
+
+# compute confidence intervals (95%)
+results_yr$lower_CI = pmax(results_yr$avg_Phi - z_score * results_yr$se_Phi, 0)
+results_yr$upper_CI = pmin(results_yr$avg_Phi + z_score * results_yr$se_Phi, 1)
+results_yr$time = rep(1, length(results_yr[,1]))
+
+results_yr %>%
+  select(-time) %>%
+  kable(col.names = c("Spawn Year", "Sex", "Mean Survival", "SE", "Lower 95% CI", "Upper 95% CI"),
+        align = "cccccc",
+        digits = 3,
+        label = NA) %>%
+  kable_styling(full_width = TRUE,
+                position = "center",
+                bootstrap_options = c("striped", "condensed"))
+
+```
+
+```{r avg-surv-yr-p, fig.cap = "Mean survival conditioned on year and sex marginalized over populations for adult natural-origin steelhead spawners surviving to the kelt life-stage at Lower Granite Dam, females only and for spawn years 2016 - 2021."}
+results_yr %>%
+  filter(between(as.numeric(as.character(year)), 2016, 2021),
+         sex == "F") %>%
+  ggplot() +
+  geom_point(aes(x = year, y = avg_Phi)) +
+  geom_errorbar(aes(x = year,
+                    ymin = lower_CI,
+                    ymax = upper_CI),
+                width = 0.25) +
+  scale_y_continuous(limits = c(0,1), breaks = seq(0, 1, by = .25)) +
+  labs(x = "Spawn Year",
+       y = "Mean Survival") +
+  theme_classic() +
+  theme(axis.title = element_text(size = 12),
+        axis.text = element_text(size = 10))
+
+```
 
 \newpage
 # References

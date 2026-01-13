@@ -3,7 +3,7 @@
 #
 # Author: Ryan N. Kinzer
 # Date Created: 2021-10-08
-#   Date Last Modified: 2025-04-01
+#   Date Last Modified: 2026-01-13
 #   Modified By: Mike Ackerman
 
 # load packages
@@ -27,10 +27,10 @@ max_sy = max(yr_range)
 snake_proj = "../SnakeRiverFishStatus/"
 PITcleanr_folder = paste0(snake_proj, "output/PITcleanr/human_reviewed/")
 lh_folder = paste0(snake_proj, "output/life_history/")
-trap_path = paste0(snake_proj, "data/LGTrappingDB/LGTrappingDB_2024-12-26.csv")
+trap_path = paste0(snake_proj, "data/LGTrappingDB/LGTrappingDB_2026-01-06.csv")
 
 # load configuration files (just need crb_sites_sf object)
-load(file = paste0(snake_proj, "data/configuration_files/site_config_LGR_20241226.rda")) ; rm(flowlines, parent_child, configuration, sr_site_pops)
+load(file = paste0(snake_proj, "data/configuration_files/site_config_LGR_20250416.rda")) ; rm(flowlines, parent_child, configuration, sr_site_pops)
 
 # load PITcleanr cleaned steelhead observation data
 pitcleanr_df = list.files(path = PITcleanr_folder,

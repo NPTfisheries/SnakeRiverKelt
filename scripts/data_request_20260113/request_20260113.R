@@ -1,4 +1,4 @@
-# Purpose: Estimate kelt abundance back to GRS, GOA, and LMN.
+# Purpose: Estimate natural-origin kelt abundance back to GRS, GOA, and LMN.
 #
 # Author: Ryan N. Kinzer
 # Date Created: Unknown

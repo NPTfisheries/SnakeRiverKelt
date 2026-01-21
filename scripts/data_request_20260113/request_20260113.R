@@ -1,9 +1,8 @@
 # Purpose: Estimate natural-origin kelt abundance back to GRS, GOA, and LMN.
 #
-# Author: Ryan N. Kinzer
-# Date Created: Unknown
-#   Date Last Modified: 2026-01-13
-#   Modified By: Mike Ackerman
+# Author: Mike Ackerman & Ryan N. Kinzer
+# Date Created: January 13, 2026
+#   Date Last Modified: January 14, 2026
 
 # load packages
 library(tidyverse)
@@ -16,7 +15,6 @@ max_sy = 2024
 # load data from 01_prep_data.R
 load(paste0("./data/input/compiled_lgr_kelt_data_sy", max_sy, ".rda"))
 
-# final prep and filtering for cjs models
 mod_df = ch_bio_df %>%
   # focus on fish with spawning observations and a final spawning population (note: this excludes nearly all hatchery fish bc they didn't make it to dabom)
   #filter(spawner_above == 1 & !is.na(popid)) %>%
@@ -54,6 +52,9 @@ mod_df %>%
             kelt_goa = sum(kelt_goa),
             kelt_lma = sum(kelt_lma),
             kelt_blw = sum(kelt_blw))
+
+#-----------------------------------------------------------------------
+# Estimate total natural-origin kelt abundance back to GRS, GOA, and LMN
 
 #---------------
 # set up and run cjs models
@@ -196,8 +197,9 @@ kelt_esc_df = best_res %>%
               transmute(year = as.factor(SpawnYear), sex = Sex, esc_lgr = Estimate),
             by = c("year", "sex")) %>%
   mutate(escapement = esc_lgr * cum_phi) %>%
+  #filter(reach == "LGR to GRS") %>% select(-cum_phi, -location)
   select(year, sex, location, escapement) %>%
-  bind_rows(lgr_df %>%
+  bind_rows(lgr_N_df %>%
               transmute(year = as.factor(SpawnYear), sex = Sex, location = "LGR", escapement = Estimate)) %>%
   mutate(location = factor(location, levels = c("LGR", "GRS", "GOA", "LMA", "Down"))) %>%
   arrange(year, sex, location) %>%

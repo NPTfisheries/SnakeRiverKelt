@@ -17,10 +17,8 @@ steelheadCapHist <- function(x) {
       life_stage == "spawner" & !grepl("GRS", path) & node != "LGR"        ~ "spawner_above",
       life_stage == "spawner" &  grepl("GRS", path) & 
         !site_code %in% c("GOA", "LMA", "IHR", "MCN", "JDA", "TDA", "BON") ~ "spawner_below",
-      #life_stage == "spawner" &  grepl("GRS", path)                        ~ "spawner_below",
-      life_stage == "kelt"    & !grepl("GRS", path) & node != "LGR"        ~ "kelt_above",
-      life_stage == "kelt" & node %in% c("GRS")                            ~ "kelt_grs", # ma changed
-      #life_stage == "kelt" & node %in% c("LGR", "GRS")                     ~ "kelt_grs",
+      life_stage == "kelt" & node == "GRS" & min_det > lgr_max_det         ~ "kelt_grs",
+      life_stage == "kelt" & !grepl("GRS", path) & node != "LGR"           ~ "kelt_above",
       life_stage == "kelt" & node == "GOA"                                 ~ "kelt_goa",
       life_stage == "kelt" & node == "LMA"                                 ~ "kelt_lma",
       life_stage == "kelt" & node == "IHR"                                 ~ "kelt_ihr",
@@ -35,7 +33,7 @@ steelheadCapHist <- function(x) {
     mutate(obs_loc = factor(obs_loc, levels = c('release_lgr', 'spawner_above', 'spawner_below', 'kelt_above', 'kelt_grs', 'kelt_goa', 'kelt_lma', 'kelt_ihr', 'kelt_mcn', 'kelt_jda', 'kelt_tda', 'kelt_bon', 'rs_bon', 'rs_lgr', 'rs_above', 'other'))) %>%
     arrange(obs_loc) %>%
     group_by(tag_code, obs_loc) %>%
-    summarise(obs = 1) %>%
+    summarise(obs = 1, .groups = "drop") %>%
     pivot_wider(names_from = "obs_loc", values_from = "obs", values_fill = 0)
   
   col_order <- c("tag_code", "release_lgr", "spawner_above", "spawner_below", "kelt_above", "kelt_grs", "kelt_goa", "kelt_lma", "kelt_ihr", "kelt_mcn", "kelt_jda", "kelt_tda", "kelt_bon", "rs_bon", "rs_lgr", "rs_above", "other")

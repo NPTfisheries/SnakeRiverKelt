@@ -6,7 +6,7 @@
 # Notes: This function often works, but sometimes errantly turns kelt observations to spawner observations. For example, a kelt may
 # briefly dip into a downriver tributary (e.g., Walla Walla, John Day) before continuing downstream migration as a kelt. Also, a kelt may
 # have an errant time-stamp to a MRR site. At some MRR sites, sometimes batch uploads occur and the min_det date-time can be far later
-# than when that fish actually arrived at the MRR iste
+# than when that fish actually arrived at the MRR site
 #
 #' Find max spawner observation.
 #'

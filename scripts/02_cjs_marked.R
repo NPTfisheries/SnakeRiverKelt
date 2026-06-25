@@ -14,10 +14,11 @@ library(marked)
 max_sy = 2024
 
 # load data from 01_prep_data.R
-load(paste0("./data/input/compiled_lgr_kelt_data_sy", max_sy, ".rda"))
+load(paste0("./data/input/compiled_lgr_kelt_data_sy", max_sy, "_lgrtal_resolved.rda"))
 
 # final prep and filtering for cjs models
 mod_df = ch_bio_df %>%
+  filter(spawn_yr <= max_sy) %>%
   # focus on fish with spawning observations and a final spawning population (note: this excludes nearly all hatchery fish bc they didn't make it to dabom)
   filter(spawner_above == 1 & !is.na(popid)) %>%
   # filter out a few remaining hatchery fish (i.e., focus on known 32W)
@@ -35,8 +36,8 @@ mod_df = ch_bio_df %>%
   # )) %>%
   # trim to fish with known sex
   filter(gen_sex %in% c("F", "M")) %>%
-  # finally, remove kelts that were removed by kelt reconditioning program
-  filter(reconditioned_kelt == "not_reconditioned") %>%
+  # finally, remove kelts that were removed by kelt reconditioning program (and kelt mort provided by LJ)
+  filter(reconditioned_kelt == "not_reconditioned" & tag_code != "3DD.00775D5CFE") %>%
   rowwise() %>%
   mutate(kelt_blw = max(c_across(c(kelt_goa:rs_above))),                 # was kelt observed anywhere downstream, including on return spawn
          kelt_rs = max(c_across(c(kelt_bon, rs_bon, rs_lgr, rs_above))), # was kelt observed making it down to bon and/or as return spawner
@@ -137,8 +138,8 @@ kelt.ddl  <- make.design.data(kelt.proc)
 kelt.cjs.models <- fit.kelt.cjs.models()
 
 kelt.cjs.models
-#best_mod <- kelt.cjs.models[[24]] #$Phi.pop.p.pop.time
-best_mod = kelt.cjs.models[[30]] # Phi.year.pop.sex
+best_mod = kelt.cjs.models[[29]]  #Phi.year.pop.sex.int, p.year.sex.time
+#best_mod = kelt.cjs.models[[30]] #Phi.year.pop.sex.int, p.year.time
 
 best_res <- best_mod$results$reals %>%
   bind_rows(.id = 'param')
@@ -204,12 +205,20 @@ fig_d = best_res %>%
   # time 2 is lgr
   filter(time == 2) %>%
   filter(param == 'p') %>%
-  ggplot(aes(x = fct_rev(year), y = estimate)) +
-  geom_errorbar(aes(ymin = lcl, ymax = ucl), width = 0.4) +
-  geom_point() +
+  ggplot(aes(x = fct_rev(year), y = estimate, color = sex)) +
+  geom_errorbar(
+    aes(ymin = lcl, ymax = ucl), 
+    width = 0.4,
+    position = position_dodge(width = 0.5)
+    ) +
+  geom_point(
+    position = position_dodge(width = 0.5)
+  ) +
   coord_flip() +
-  labs(title = 'Snake River Basin Steelhead Kelt',
-       subtitle = 'Detection probability of steelhead kelt at Lower Granite Dam after being observed in Snake River basin spawning areas.',
+  labs(
+    title = 'Snake River Basin Steelhead Kelt',
+    subtitle = 'Detection probability of steelhead kelt at Lower Granite Dam after being observed in Snake River basin spawning areas.',
+    color = 'Sex',
        x = 'Spawn Year',
        y = 'P(Detection | Kelt at LGD)') +
   theme_classic() +

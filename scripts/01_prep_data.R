@@ -3,7 +3,7 @@
 #
 # Author: Ryan N. Kinzer
 # Date Created: 2021-10-08
-#   Date Last Modified: 2026-01-13
+#   Date Last Modified: 2026-06-25
 #   Modified By: Mike Ackerman
 
 # load packages
@@ -18,16 +18,16 @@ source("./R/steelheadCapHist.R")
 
 # set some parameters
 yr_range = 2010:2024
-max_sy = max(yr_range)
+max_sy   = max(yr_range)
 
 #---------------
 # load data
 
 # set some file paths to datasets
-snake_proj = "../SnakeRiverFishStatus/"
+snake_proj       = "../SnakeRiverFishStatus/"
 PITcleanr_folder = paste0(snake_proj, "output/PITcleanr/human_reviewed/")
-lh_folder = paste0(snake_proj, "output/life_history/")
-trap_path = paste0(snake_proj, "data/LGTrappingDB/LGTrappingDB_2026-01-06.csv")
+lh_folder        = paste0(snake_proj, "output/life_history/")
+trap_path        = paste0(snake_proj, "data/LGTrappingDB/LGTrappingDB_2026-01-06.csv")
 
 # load configuration files (just need crb_sites_sf object)
 load(file = paste0(snake_proj, "data/configuration_files/site_config_LGR_20250416.rda")) ; rm(flowlines, parent_child, configuration, sr_site_pops)
@@ -43,7 +43,142 @@ pitcleanr_df = list.files(path = PITcleanr_folder,
       mutate(spawn_yr = as.numeric(spawn_yr))
   })
 
-# load life history data (do I need this?)
+# load complete tag histories to flag LGRTAL release records
+srfs_cths = list.files(path = paste0(snake_proj, "data/complete_tag_histories/"),
+                       pattern = "Steelhead",
+                       full.names = TRUE)  %>%
+  map_df(~{
+    spawn_yr = str_extract(.x, "(?<=SY)\\d{4}")
+    
+    read_csv(.x, show_col_types = FALSE) %>%
+      mutate(spawn_yr = as.numeric(spawn_yr))
+  }) %>%
+  clean_names()
+
+# ghost kelts provided by LGRTAL not uploaded to ptagis
+ghost_kelts = tribble(
+  ~spawn_yr, ~tag_code, ~event_date_time_value,
+  2016, "384.3B23ACD618",	"5/13/2016 10:00",	    
+  2016, "384.3B23ACDF8C",	"5/5/2016 10:00",       
+  2016, "384.3B23ACE63D",	"5/5/2016 10:00",	      
+  2016, "384.3B23AD0166",	"5/7/2016	9:12",  
+  2016, "384.3B23AD3B70",	"4/2/2016	11:16", 
+  2016, "384.3B23AD514E",	"5/13/2016 8:31", 
+  2016, "384.3B23AD531C",	"4/2/2016	10:12", 
+  2016, "384.3B23AD54D4",	"5/3/2016	10:27", 
+  2016, "3D9.1C2DDC46CE",	"5/5/2016	9:38"  
+  #2017, "3DD.00775D5CFE", "5/3/2017 7:44", "mort"
+) %>%
+  mutate(
+    event_release_site_code_code = "LGRTAL",
+    event_date_time_value = lubridate::mdy_hm(event_date_time_value)
+  )
+
+# identify LGRTAL release records and turn them into PITcleanR-style GRS rows
+lgrtal_grs_patch = srfs_cths %>%
+  select(spawn_yr, tag_code, event_date_time_value, event_release_site_code_code) %>%
+  mutate(
+    event_date_time_value = lubridate::mdy_hms(event_date_time_value)
+  ) %>%
+  bind_rows(ghost_kelts) %>%
+  filter(event_release_site_code_code == "LGRTAL") %>%
+  semi_join(
+    pitcleanr_df %>%
+      distinct(spawn_yr, tag_code),
+    by = c("spawn_yr", "tag_code")
+  ) %>%
+  group_by(spawn_yr, tag_code) %>%
+  slice_min(event_date_time_value, n = 1, with_ties = FALSE) %>%
+  ungroup() %>%
+  left_join(
+    pitcleanr_df %>%
+      group_by(spawn_yr, tag_code) %>%
+      summarise(
+        tag_start_date = first(na.omit(tag_start_date)),
+        .groups = "drop"
+      ),
+    by = c("spawn_yr", "tag_code")
+  ) %>%
+  transmute(
+    id              = NA,
+    tag_code,
+    life_stage      = "kelt",
+    auto_keep_obs   = NA,
+    user_keep_obs   = TRUE,
+    node            = "GRS",
+    direction       = NA,
+    slot            = NA,
+    event_type_name = NA,
+    n_dets          = 1,
+    min_det         = event_date_time_value,
+    max_det         = event_date_time_value,
+    duration        = NA,
+    travel_time     = NA,
+    tag_start_date,
+    node_order      = 2,
+    path            = "LGR GRS",
+    spawn_yr
+  )
+
+# identify LGRTAL records already represented by an LGR min_det match
+lgrtal_lgr_update_keys = pitcleanr_df %>%
+  inner_join(
+    lgrtal_grs_patch %>%
+      select(spawn_yr, tag_code, lgrtal_min_det = min_det),
+    by = c("spawn_yr", "tag_code")
+  ) %>%
+  filter(
+    node == "LGR",
+    min_det == lgrtal_min_det
+  ) %>%
+  distinct(spawn_yr, tag_code, lgrtal_min_det)
+
+# update matching LGR min_det records to GRS, split LGR max_det-only records, and add GRS rows for all others
+pitcleanr_df_updated = pitcleanr_df %>%
+  left_join(
+    lgrtal_grs_patch %>%
+      select(spawn_yr, tag_code, lgrtal_min_det = min_det),
+    by = c("spawn_yr", "tag_code")
+  ) %>%
+  mutate(
+    update_lgr_to_grs = node == "LGR" &
+      min_det == lgrtal_min_det,
+    
+    split_lgr_to_grs = node == "LGR" &
+      min_det != max_det &
+      max_det == lgrtal_min_det,
+    
+    update_lgr_to_grs = coalesce(update_lgr_to_grs, FALSE),
+    split_lgr_to_grs  = coalesce(split_lgr_to_grs, FALSE),
+    
+    node          = if_else(update_lgr_to_grs, "GRS", node),
+    path          = if_else(update_lgr_to_grs, "LGR GRS", path),
+    life_stage    = if_else(update_lgr_to_grs, "kelt", life_stage),
+    user_keep_obs = if_else(update_lgr_to_grs, TRUE, user_keep_obs),
+    
+    max_det = if_else(split_lgr_to_grs, min_det, max_det)
+  ) %>%
+  select(-lgrtal_min_det, -update_lgr_to_grs, -split_lgr_to_grs) %>%
+  bind_rows(
+    lgrtal_grs_patch %>%
+      anti_join(
+        pitcleanr_df %>%
+          inner_join(
+            lgrtal_grs_patch %>%
+              select(spawn_yr, tag_code, lgrtal_min_det = min_det),
+            by = c("spawn_yr", "tag_code")
+          ) %>%
+          filter(
+            node == "LGR",
+            min_det == lgrtal_min_det
+          ) %>%
+          distinct(spawn_yr, tag_code, lgrtal_min_det),
+        by = c("spawn_yr", "tag_code", "min_det" = "lgrtal_min_det")
+      )
+  ) %>%
+  arrange(spawn_yr, tag_code, min_det)
+
+# load life history data
 lh_df = list.files(path = lh_folder,
                    pattern = "Steelhead",
                    full.names = T) %>%
@@ -95,7 +230,7 @@ tabyl(critfc_kelt_df, reconditioned_kelt, collection_year) %>%
 
 #---------------
 # generate a common complete tag history dataset
-cth_df = pitcleanr_df %>%
+cth_df = pitcleanr_df_updated %>%
   # remove spawner observations considered FALSE for dabom
   filter(!(life_stage == "spawner" & user_keep_obs == FALSE)) %>%
   # create site code from node
@@ -137,7 +272,8 @@ if (fix_errant_kelt_calls == TRUE) {
     nest() %>%
     mutate(new = map(data, find_max_spawner)) %>%
     select(-data) %>%
-    unnest(new) 
+    unnest(new) %>%
+    ungroup()
 }
 
 # RK method
@@ -191,7 +327,7 @@ mismatch_ch = ch_compare_df %>%
   ungroup()
 
 # quick checks  
-nrow(mismatch_ch) / 2                           # number of fish with mis-matching ch's depending on method
+nrow(mismatch_ch) / 2                            # number of fish with mis-matching ch's depending on method
 (nrow(mismatch_ch) / nrow(ch_compare_df)) * 100  # percent of all fish with mis-matching ch's
   
 # choose data set to proceed with
@@ -256,8 +392,7 @@ ch_bio_df %>%
          tag_code,
          release_lgr:rs_above) %>%
   group_by(spawn_yr) %>%
-  summarise(across(-tag_code, sum)) %>%
-  ungroup()
+  summarise(across(-tag_code, sum), .groups = "drop")
 
 # check sexes of reconditioned vs. all kelts
 ch_bio_df %>%
@@ -279,7 +414,7 @@ ch_summary = ch_bio_df %>%
   summarise(across(.cols = c(release_lgr:rs_above, ), sum))
 
 # save results
-save(ch_bio_df, file = paste0("./data/input/compiled_lgr_kelt_data_sy", max_sy, ".rda"))
+save(ch_bio_df, file = paste0("./data/input/compiled_lgr_kelt_data_sy", max_sy, "_lgrtal_resolved.rda"))
 
 # clear environment
 rm(list = ls())

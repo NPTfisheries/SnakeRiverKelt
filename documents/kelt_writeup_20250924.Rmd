@@ -85,6 +85,7 @@ options(knitr.kable.NA = '--')
 library(tidyverse)
 library(magrittr)
 library(marked)
+#source('../R/theme_rk.R')
 ```
 
 ```{r cite-pkgs}
@@ -94,10 +95,9 @@ knitr::write_bib(.packages(), "../documents/kelt_summary_package.bib")
 
 ```{r load-data}
 sy = 2024
-load(paste0('../data/input/compiled_lgr_kelt_data_sy', sy, '_lgrtal_resolved.rda'))  # from 01_prep_data.R
-load(paste0('../data/output/mod_dat_sy', sy, '_2026-06-25', '.rda')) # from 02_cjs_marked.R
+load(paste0('../data/input/compiled_lgr_kelt_data_sy', sy, '.rda'))  # from 01_prep_data.R
+load(paste0('../data/output/mod_dat_sy', sy, '_2025-04-04', '.rda')) # from 02_cjs_marked.R
 ch_bio_df %<>%
-  filter(spawn_yr <= sy) %>%
   mutate(popid = recode(popid, "CRLMA-s/CRSFC-s" = "CRSFC-s")) %>%
   rowwise() %>%
   mutate(kelt_blw = max(c_across(c(kelt_goa:rs_above)))) %>%
@@ -400,24 +400,14 @@ best_res %>%
   # time 2 is lgr
   filter(time == 2) %>%
   filter(param == "p") %>%
-  select(year, sex, estimate, se, lcl, ucl) %>%
-  kable(col.names = c('Spawn Year', 'Sex', 'Estimate', 'SE', 'Lower 95% CI', 'Upper 95% CI'),
-        align = 'lccccc',
+  select(year, estimate, se, lcl, ucl) %>%
+  kable(col.names = c('Spawn Year', 'Estimate', 'SE', 'Lower 95% CI', 'Upper 95% CI'),
+        align = 'lcccc',
         digits = 2,
         label = NA) %>%
   kable_styling(full_width = TRUE,
                 position = "center",
                 bootstrap_options = c("striped", "condensed"))
-
-best_res %>%
-  filter(
-    time == 2,
-    param == "p"
-  ) %>%
-  select(year, sex, estimate, se, lcl, ucl) %>%
-  write_csv(
-    file = "../output/lgr_kelt_det_probs_best_mod.csv"
-  )
 
 ```
 
@@ -426,20 +416,14 @@ best_res %>%
   # time 2 is lgr
   filter(time == 2) %>%
   filter(param == "p") %>%
-  ggplot(aes(x = fct_rev(year), y = estimate, color = sex)) +
-  geom_errorbar(
-    aes(ymin = lcl, ymax = ucl), 
-    width = 0.4,
-    position = position_dodge(width = 0.5)
-  ) +
-  geom_point(position = position_dodge(width = 0.5)) +
-  scale_y_continuous(limits = c(0, 1)) +
+  ggplot(aes(x = fct_rev(year), y = estimate)) +
+  geom_errorbar(aes(ymin = lcl, ymax = ucl), width = 0.4) +
+  geom_point() +
   coord_flip() +
   labs(#title = "Snake River Basin Steelhead Kelt",
        #subtitle = "Detection probability of steelhead kelt at Lower Granite Dam after being observed in Snake River basin spawning areas.",
        x = "",
-       y = "P(Detection | Kelt at LGD)",
-       color = "Sex") +
+       y = "P(Detection | Kelt at LGD)") +
   theme_classic() +
   theme(axis.title = element_text(size = 12, face = "bold"),
         axis.text = element_text(size = 8),
@@ -448,17 +432,16 @@ best_res %>%
         plot.title = element_text(size = 12, face = "bold", hjust = 0))
 ```
 
+
 ```{r surv-plot, fig.height = 15, out.width = '100%', fig.cap = "Estimated survival probability from the best fitting model of adult steelhead spawners to the kelt life-stage at Lower Granite Dam."}
 best_res %>%
   filter(time == 1) %>%
   filter(param == "Phi") %>%
   ggplot(aes(x = fct_reorder(pop, estimate), y = estimate, color = sex)) +
-  geom_errorbar(
-    aes(ymin = lcl, ymax = ucl),
-    width = 0.5,
-    position = position_dodge(width = 0.5)
-  ) +
-  geom_point(position = position_dodge(width = 0.5)) +
+  geom_errorbar(aes(ymin = lcl, ymax = ucl),
+                width = 0.5,
+                position = position_dodge(width = 0.5)) +
+  geom_point(             position = position_dodge(width = 0.5)) +
   coord_flip() +
   facet_wrap(~year, ncol = 3) +
   labs(#title = "Snake River Basin Steelhead Kelt",
@@ -494,7 +477,7 @@ phi_lgd = best_res %>%
 
 ```{r pop-only}
 # Extract real parameter estimates (on probability scale)
-real_phi = predict(best_mod, type = "Phi")$Phi
+real_phi = predict(best_mod, type="Phi")$Phi
 
 # Subset to time = 1
 real_phi_time1 = real_phi[real_phi$time == 1, ]
